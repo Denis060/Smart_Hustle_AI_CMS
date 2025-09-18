@@ -1,8 +1,8 @@
-
 import './index.css';
 import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
+import PublicCourses from './PublicCourses';
 function AdminRoute() {
   const [authed, setAuthed] = useState(!!localStorage.getItem('adminToken'));
   const navigate = useNavigate();
@@ -299,9 +299,9 @@ function Header() {
         <NavLink to="/" className="text-2xl font-bold tracking-tight text-cyan-400" aria-label="Home">
           Smart Hustle with AI
         </NavLink>
-  <nav className="flex gap-2" aria-label="Main navigation">
+        <nav className="flex gap-2" aria-label="Main navigation">
           <NavLink to="/" end className={LinkCls}>Home</NavLink>
-          <NavLink to="/my-courses" className={LinkCls}>My Courses</NavLink>
+          <NavLink to="/courses" className={LinkCls}>Courses</NavLink>
           <NavLink to="/recommended" className={LinkCls}>Recommended</NavLink>
           <NavLink to="/blog" className={LinkCls}>Blog</NavLink>
           <NavLink to="/about" className={LinkCls}>About</NavLink>
@@ -467,6 +467,7 @@ export default function App() {
               <Route path="/recommended" element={<Recommended />} />
               <Route path="/about" element={<About />} />
               <Route path="/admin/*" element={<AdminRoute />} />
+              <Route path="/courses" element={<PublicCourses />} />
               <Route path="*" element={<div className="p-8 text-center text-rose-400 text-xl">404 – Page Not Found</div>} />
                     <Route path="blog" element={<Blog />} />
                     <Route path="my-courses" element={<MyCourses />} />

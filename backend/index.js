@@ -1,10 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+
+const path = require('path');
 const app = express();
+
 
 app.use(cors());
 app.use(express.json());
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Import routes
 const settingsRoutes = require('./routes/settings');
@@ -12,6 +18,7 @@ const campaignsRoutes = require('./routes/campaigns');
 const subscribersRoutes = require('./routes/subscribers');
 const mediaRoutes = require('./routes/media');
 const coursesRoutes = require('./routes/courses');
+const enrollmentsRoutes = require('./routes/enrollments');
 const commentsRoutes = require('./routes/comments');
 const tagsRoutes = require('./routes/tags');
 const categoriesRoutes = require('./routes/categories');
@@ -24,6 +31,7 @@ app.use('/api/campaigns', campaignsRoutes);
 app.use('/api/subscribers', subscribersRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/courses', coursesRoutes);
+app.use('/api/enrollments', enrollmentsRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/tags', tagsRoutes);
 app.use('/api/categories', categoriesRoutes);

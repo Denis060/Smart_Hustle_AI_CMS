@@ -10,7 +10,11 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      Course.belongsToMany(models.Student, {
+        through: models.CourseEnrollment,
+        foreignKey: 'courseId',
+        otherKey: 'studentId',
+      });
     }
   }
   Course.init({
@@ -20,7 +24,8 @@ module.exports = (sequelize, DataTypes) => {
     featuredImage: DataTypes.STRING,
     external: DataTypes.BOOLEAN,
     affiliateLink: DataTypes.STRING,
-    review: DataTypes.TEXT
+    review: DataTypes.TEXT,
+    level: DataTypes.ENUM('beginner', 'medium', 'advanced')
   }, {
     sequelize,
     modelName: 'Course',
