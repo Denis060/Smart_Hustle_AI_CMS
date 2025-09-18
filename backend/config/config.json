@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "root",
+    "password": "Denis55522",
+    "database": "smart_hustle_db",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": "Denis55522",
+    "database": "smart_hustle_db",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "root",
+    "password": "Denis55522",
+    "database": "smart_hustle_db",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  }
+}
