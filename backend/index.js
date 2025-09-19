@@ -23,6 +23,8 @@ const commentsRoutes = require('./routes/comments');
 const tagsRoutes = require('./routes/tags');
 const categoriesRoutes = require('./routes/categories');
 const authRoutes = require('./routes/auth');
+
+const postInteractionsRoutes = require('./routes/postInteractions');
 const postsRoutes = require('./routes/posts');
 
 // Use routes
@@ -36,7 +38,7 @@ app.use('/api/comments', commentsRoutes);
 app.use('/api/tags', tagsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/posts', postsRoutes);
+app.use('/api/posts', postInteractionsRoutes);
 app.use('/api/posts', postsRoutes);
 
 

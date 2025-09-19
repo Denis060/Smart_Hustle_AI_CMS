@@ -8,17 +8,35 @@ router.get('/', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
-  const posts = await Post.findAndCountAll({
+  // Only show published posts for public (unauthenticated) requests
+  let where = {};
+  // Only filter for published if NOT authenticated
+  let isAdmin = false;
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) {
+    // Optionally, verify token here for extra security
+    isAdmin = true;
+  }
+  if (!isAdmin) {
+    where.published = 1; // MySQL stores booleans as 1/0
+  }
+  const result = await Post.findAndCountAll({
+    where,
     include: [User, Category],
     limit,
     offset,
     order: [['createdAt', 'DESC']]
   });
-  res.json(posts);
+  // Debug log
+  console.log('Fetched posts:', result.rows.length, 'Total:', result.count);
+  res.json({
+    posts: result.rows,
+    totalPages: Math.ceil(result.count / limit)
+  });
 });
 
-// Get single post by id
-router.get('/:id', async (req, res) => {
+// Get single post by id (only match numeric IDs)
+router.get('/:id(\d+)', async (req, res) => {
   const post = await Post.findByPk(req.params.id, { include: [User, Category] });
   if (!post) return res.status(404).json({ error: 'Post not found' });
   res.json(post);
