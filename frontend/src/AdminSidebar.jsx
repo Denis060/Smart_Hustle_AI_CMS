@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminSidebar({ active, onNavigate, onLogout }) {
+  const navigate = useNavigate();
   // Prototype-based nav structure
   const nav = [
     { label: 'Analytics', key: 'analytics', section: 'Overview' },
@@ -23,19 +25,34 @@ export default function AdminSidebar({ active, onNavigate, onLogout }) {
   const NavGroup = ({ title }) => (
     <h3 className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 mb-1">{title}</h3>
   );
-  const NavLink = ({ currentView, viewName, children }) => (
-    <button
-      onClick={() => onNavigate(viewName)}
-      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left ${
-        currentView === viewName
-          ? 'text-white bg-slate-700'
-          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-      }`}
-      style={{ boxShadow: 'none', background: currentView === viewName ? undefined : 'none' }}
-    >
-      {children}
-    </button>
-  );
+  const NavLink = ({ currentView, viewName, children }) => {
+    // Map viewName to URL path
+    let path = '/admin';
+    if (viewName === 'courses') path = '/admin/courses';
+    else if (viewName === 'posts') path = '/admin/posts';
+    else if (viewName === 'categories') path = '/admin/categories';
+    else if (viewName === 'tags') path = '/admin/tags';
+    else if (viewName === 'comments') path = '/admin/comments';
+    else if (viewName === 'media') path = '/admin/media';
+    else if (viewName === 'compose') path = '/admin/compose';
+    else if (viewName === 'subscribers') path = '/admin/subscribers';
+    else if (viewName === 'campaigns') path = '/admin/campaigns';
+    else if (viewName === 'settings') path = '/admin/settings';
+    // Analytics is default /admin
+    return (
+      <button
+        onClick={() => navigate(path)}
+        className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left ${
+          currentView === viewName
+            ? 'text-white bg-slate-700'
+            : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+        }`}
+        style={{ boxShadow: 'none', background: currentView === viewName ? undefined : 'none' }}
+      >
+        {children}
+      </button>
+    );
+  };
 
   return (
     <aside className="w-64 bg-slate-900 p-4 border-r border-slate-700 flex-shrink-0 hidden md:flex flex-col">

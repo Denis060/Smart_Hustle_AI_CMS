@@ -3,13 +3,15 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminPostEditor({ post, onSave, isEdit }) {
-  const [formData, setFormData] = useState(post || {
-    title: '',
-    content: '',
-    featuredImage: '',
-    categoryId: '',
-    tagIds: [],
+  const getInitialForm = (p) => ({
+    title: p?.title || '',
+    content: p?.content || '',
+    featuredImage: p?.featuredImage || '',
+    categoryId: p?.categoryId || '',
+    tagIds: p?.tagIds || [],
+    published: p?.published || false,
   });
+  const [formData, setFormData] = useState(getInitialForm(post));
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -18,7 +20,7 @@ export default function AdminPostEditor({ post, onSave, isEdit }) {
   useEffect(() => {
     axios.get('/api/categories').then(res => setCategories(res.data)).catch(() => setCategories([]));
     axios.get('/api/tags').then(res => setTags(res.data)).catch(() => setTags([]));
-    if (post) setFormData(post);
+    setFormData(getInitialForm(post));
   }, [post]);
 
   const handleChange = (e) => {
@@ -45,10 +47,25 @@ export default function AdminPostEditor({ post, onSave, isEdit }) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
-      <button onClick={() => navigate('/admin')} className="text-cyan-400 hover:underline mb-6">&larr; Back to Posts</button>
+    <div className="py-10 px-8">
+      <button onClick={() => navigate('/admin/posts')} className="text-cyan-400 hover:underline mb-6">&larr; Back to Posts</button>
       <h1 className="text-3xl font-bold text-white mb-8">{isEdit ? 'Edit Post' : 'Create New Post'}</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex items-center gap-6 mb-2">
+          <label className="block text-slate-400 mb-1">Status:</label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="published"
+              checked={!!formData.published}
+              onChange={e => setFormData(f => ({ ...f, published: e.target.checked }))}
+              className="form-checkbox h-5 w-5 text-cyan-600"
+            />
+            <span className={formData.published ? 'text-emerald-400 font-semibold' : 'text-slate-400'}>
+              {formData.published ? 'Published' : 'Draft'}
+            </span>
+          </label>
+        </div>
         <div>
           <label className="block text-slate-400 mb-1">Post Title</label>
           <input type="text" name="title" value={formData.title} onChange={handleChange} className="w-full p-3 rounded bg-slate-800 text-white" required />

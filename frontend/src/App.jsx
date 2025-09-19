@@ -21,7 +21,10 @@ function AdminRoute() {
 import { useState, useCallback, useEffect } from 'react';
 
 
-function Blog() {
+import { Link } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+const PostDetail = lazy(() => import('./components/PostDetail.jsx'));
+function Posts() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -29,6 +32,7 @@ function Blog() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [categories, setCategories] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
@@ -39,13 +43,12 @@ function Blog() {
     });
     fetch(`/api/posts?${params.toString()}`)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch blog posts');
+        if (!res.ok) throw new Error('Failed to fetch posts');
         return res.json();
       })
       .then(data => {
         setPosts(data.posts || []);
         setTotalPages(data.totalPages || 1);
-        // Collect unique categories for filter dropdown
         if (data.categories) {
           setCategories(data.categories);
         } else {
@@ -57,58 +60,98 @@ function Blog() {
       .finally(() => setLoading(false));
   }, [search, category, page]);
 
+  // Simulate recommended articles (top 3 by createdAt)
+  const recommended = [...posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3);
+
   return (
-    <section className="py-16 min-h-[70vh] flex flex-col items-center justify-center">
-      <h1 className="text-5xl font-extrabold text-center mb-4">The AI Hustle Blog</h1>
+    <section className="py-16 min-h-[70vh] flex flex-col items-center justify-center w-full">
+      <h1 className="text-5xl font-extrabold text-center mb-4">The AI Hustle Posts</h1>
       <p className="text-lg text-slate-300 text-center mb-8 max-w-2xl">Insights on Machine Learning, AI, and Data Science Projects.</p>
-      <div className="mb-8 flex flex-col md:flex-row gap-4 w-full max-w-3xl items-center justify-between">
-        <input
-          type="text"
-          placeholder="Search blog posts..."
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className="w-full md:w-72 rounded bg-slate-800 px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-        />
-        <select
-          className="rounded bg-slate-800 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          value={category}
-          onChange={e => { setCategory(e.target.value); setPage(1); }}
-        >
-          <option value="">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
-      </div>
-      {loading ? (
-        <div className="text-slate-400 text-lg">Loading blog posts...</div>
-      ) : posts.length === 0 ? (
-        <div className="text-slate-400 text-lg">No blog posts found.</div>
-      ) : (
-        <div className="flex flex-col md:flex-row gap-8 w-full max-w-6xl justify-center flex-wrap">
-          {posts.map(post => (
-            <div key={post.id} className="flex-1 bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-4 min-w-[320px] max-w-md border border-slate-700 transition-transform duration-200 hover:scale-[1.025] hover:shadow-2xl cursor-pointer">
-              <span className="text-cyan-400 text-sm font-bold mb-2">{post.category || 'Blog'}</span>
-              <h2 className="text-2xl font-bold text-white mb-1">{post.title}</h2>
-              <p className="text-slate-300 mb-2">{post.excerpt || post.body?.slice(0, 160) + '...'}</p>
-              <a href={post.url || '#'} className="text-cyan-400 font-semibold hover:underline text-base mt-2" target="_blank" rel="noopener noreferrer">Read More &rarr;</a>
+      <div className="flex flex-col md:flex-row gap-8 w-full max-w-7xl">
+        {/* Left: Recommended */}
+        <aside className="w-full md:w-1/4 flex flex-col gap-4">
+          <div className="bg-slate-800 rounded-xl p-4 mb-4">
+            <h2 className="text-lg font-bold text-cyan-400 mb-2">Recommended</h2>
+            {recommended.length === 0 ? <div className="text-slate-400">No recommendations yet.</div> : recommended.map(post => (
+              <div key={post.id} className="mb-3">
+                <Link to={`/posts/${post.id}`} className="text-cyan-300 hover:underline font-semibold">{post.title}</Link>
+                <div className="text-xs text-slate-400">{post.category?.name || 'Post'}</div>
+              </div>
+            ))}
+          </div>
+        </aside>
+        {/* Center: Main Feed */}
+        <main className="w-full md:w-2/4 flex flex-col gap-6">
+          <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <input
+              type="text"
+              placeholder="Search posts..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="w-full md:w-72 rounded bg-slate-800 px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            />
+            <select
+              className="rounded bg-slate-800 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              value={category}
+              onChange={e => { setCategory(e.target.value); setPage(1); }}
+            >
+              <option value="">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+          {loading ? (
+            <div className="text-slate-400 text-lg">Loading posts...</div>
+          ) : posts.length === 0 ? (
+            <div className="text-slate-400 text-lg">No posts found.</div>
+          ) : (
+            <div className="flex flex-col gap-8">
+              {posts.map(post => (
+                <div key={post.id} className="bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-4 border border-slate-700 transition-transform duration-200 hover:scale-[1.01] hover:shadow-2xl cursor-pointer" onClick={() => navigate(`/posts/${post.id}`)}>
+                  <span className="text-cyan-400 text-sm font-bold mb-2">{post.category?.name || 'Post'}</span>
+                  <h2 className="text-2xl font-bold text-white mb-1">{post.title}</h2>
+                  <p className="text-slate-300 mb-2">{post.excerpt || post.content?.slice(0, 160) + '...'}</p>
+                  <div className="flex gap-4 mt-2">
+                    <button className="px-3 py-1 rounded bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition text-sm">Like</button>
+                    <button className="px-3 py-1 rounded bg-slate-700 text-white font-bold hover:bg-slate-600 transition text-sm">Comment</button>
+                    <button className="px-3 py-1 rounded bg-indigo-500 text-white font-bold hover:bg-indigo-400 transition text-sm">Share</button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-      {/* Pagination controls */}
-      <div className="mt-10 flex gap-2">
-        <button
-          className="px-4 py-2 rounded bg-slate-800 text-white disabled:opacity-50"
-          disabled={page === 1}
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-        >Prev</button>
-        <span className="px-3 py-2 text-slate-400">Page {page} of {totalPages}</span>
-        <button
-          className="px-4 py-2 rounded bg-slate-800 text-white disabled:opacity-50"
-          disabled={page === totalPages}
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-        >Next</button>
+          )}
+          {/* Pagination controls */}
+          <div className="mt-10 flex gap-2">
+            <button
+              className="px-4 py-2 rounded bg-slate-800 text-white disabled:opacity-50"
+              disabled={page === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >Prev</button>
+            <span className="px-3 py-2 text-slate-400">Page {page} of {totalPages}</span>
+            <button
+              className="px-4 py-2 rounded bg-slate-800 text-white disabled:opacity-50"
+              disabled={page === totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >Next</button>
+          </div>
+        </main>
+        {/* Right: Sidebar */}
+        <aside className="w-full md:w-1/4 flex flex-col gap-4">
+          <div className="bg-slate-800 rounded-xl p-4 mb-4">
+            <h2 className="text-lg font-bold text-cyan-400 mb-2">Subscribe</h2>
+            <form className="flex flex-col gap-2">
+              <input type="email" placeholder="Your email" className="rounded bg-slate-900 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
+              <button type="submit" className="rounded bg-cyan-500 px-4 py-2 font-bold text-slate-900 hover:bg-cyan-400 transition">Subscribe</button>
+            </form>
+          </div>
+          <div className="bg-slate-800 rounded-xl p-4">
+            <h2 className="text-lg font-bold text-cyan-400 mb-2">Share</h2>
+            <div className="flex gap-2">
+              <button className="rounded bg-indigo-500 px-3 py-2 text-white font-bold hover:bg-indigo-400 transition">Share</button>
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
   );
@@ -303,7 +346,7 @@ function Header() {
           <NavLink to="/" end className={LinkCls}>Home</NavLink>
           <NavLink to="/courses" className={LinkCls}>Courses</NavLink>
           <NavLink to="/recommended" className={LinkCls}>Recommended</NavLink>
-          <NavLink to="/blog" className={LinkCls}>Blog</NavLink>
+          <NavLink to="/posts" className={LinkCls}>Posts</NavLink>
           <NavLink to="/about" className={LinkCls}>About</NavLink>
         </nav>
       </div>
@@ -462,14 +505,16 @@ export default function App() {
                   </section>
                 }
               />
-              <Route path="/blog" element={<Blog />} />
+              <Route path="/posts" element={<Posts />} />
+              <Route path="/posts/:id" element={<Suspense fallback={<div className='text-slate-400 p-8'>Loading post...</div>}><PostDetail /></Suspense>} />
               <Route path="/my-courses" element={<MyCourses />} />
               <Route path="/recommended" element={<Recommended />} />
               <Route path="/about" element={<About />} />
               <Route path="/admin/*" element={<AdminRoute />} />
               <Route path="/courses" element={<PublicCourses />} />
               <Route path="*" element={<div className="p-8 text-center text-rose-400 text-xl">404 – Page Not Found</div>} />
-                    <Route path="blog" element={<Blog />} />
+                    <Route path="posts" element={<Posts />} />
+                    <Route path="posts/:id" element={<Suspense fallback={<div className='text-slate-400 p-8'>Loading post...</div>}><PostDetail /></Suspense>} />
                     <Route path="my-courses" element={<MyCourses />} />
                     <Route path="recommended" element={<Recommended />} />
                     <Route path="about" element={<About />} />

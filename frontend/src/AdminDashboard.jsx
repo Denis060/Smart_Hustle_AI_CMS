@@ -1,3 +1,25 @@
+import { useParams, useNavigate, Routes, Route, useLocation } from 'react-router-dom';
+function AdminPostEditorLoader() {
+  const { id } = useParams();
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    axios.get(`/api/posts/${id}`)
+      .then(res => setPost(res.data))
+      .catch(() => setPost(null))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <div className="text-slate-300">Loading...</div>;
+  if (!post) return <div className="text-red-400">Post not found.</div>;
+
+  return <AdminPostEditor post={post} isEdit={true} onSave={async (data) => {
+    await axios.put(`/api/posts/${id}`, data, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } });
+    navigate('/admin');
+  }} />;
+}
 
 // Enroll Modal (exported for use in PublicCourses)
 
@@ -368,17 +390,29 @@ function CourseModal({ course, onClose, onSave }) {
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import EnrollModal from './EnrollModal';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+// removed duplicate import of Routes, Route, useLocation, useNavigate
 import AdminSidebar from './AdminSidebar';
+import AdminPostEditor from './AdminPostEditor';
 
 function PostsSection() {
   const [posts, setPosts] = useState([]);
   const navigate = useNavigate();
   useEffect(() => {
-    axios.get('/api/posts')
-      .then(res => setPosts(res.data.rows ? res.data.rows : res.data))
+    axios.get('/api/posts', { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } })
+      .then(res => setPosts(res.data.posts || []))
       .catch(() => setPosts([]));
   }, []);
+  // Delete post handler
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await axios.delete(`/api/posts/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } });
+      setPosts(posts => posts.filter(p => p.id !== id));
+    } catch (err) {
+      alert('Failed to delete post: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -403,11 +437,21 @@ function PostsSection() {
                 <td className="p-4">{post.title}</td>
                 <td className="p-4">{post.User ? post.User.name || post.User.username : post.authorId || '—'}</td>
                 <td className="p-4">{post.publishedAt || post.createdAt?.slice(0, 10) || ''}</td>
-                <td className="p-4">{post.featuredImage && <img src={post.featuredImage} alt="Post" className="h-10 w-16 object-cover rounded" />}</td>
+                <td className="p-4">
+                  <img
+                    src={post.featuredImage
+                      ? (post.featuredImage.startsWith('http')
+                        ? post.featuredImage
+                        : `/api/${post.featuredImage}`)
+                      : '/no-image.png'}
+                    alt="Post"
+                    className="h-10 w-16 object-cover rounded"
+                  />
+                </td>
                 <td className="p-4"><span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${post.published ? 'text-emerald-600 bg-emerald-200' : 'text-slate-500 bg-slate-700'}`}>{post.published ? 'Published' : 'Draft'}</span></td>
                 <td className="p-4 text-right flex gap-2 justify-end">
                   <button className="text-slate-400 hover:text-white" onClick={() => navigate(`/admin/posts/edit/${post.id}`)}>Edit</button>
-                  <button className="text-red-400 hover:text-red-600" onClick={() => alert('Delete not implemented')}>Delete</button>
+                  <button className="text-red-400 hover:text-red-600" onClick={() => handleDelete(post.id)}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -419,31 +463,19 @@ function PostsSection() {
 }
 
 function AdminDashboard({ onLogout }) {
-  const [view, setView] = useState('analytics');
-  const location = useLocation();
-
-  useEffect(() => {
-    if (location.pathname.startsWith('/admin/posts')) {
-      setView('posts');
-    } else if (location.pathname.startsWith('/admin/courses')) {
-      setView('courses');
-    } else if (location.pathname === '/admin' || location.pathname === '/admin/') {
-      setView('analytics');
-    }
-  }, [location.pathname]);
-
   return (
     <div className="bg-slate-900 text-slate-300 min-h-screen flex">
-      <AdminSidebar active={view} onNavigate={setView} onLogout={onLogout} />
+      <AdminSidebar active={null} onLogout={onLogout} />
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         <Routes>
-          <Route path="/" element={
-            <>
-              {view === 'analytics' && <div className="text-2xl font-bold text-white">Welcome to Analytics Dashboard</div>}
-              {view === 'posts' && <PostsSection />}
-              {view === 'courses' && <CoursesSection />}
-            </>
-          } />
+          <Route path="" element={<div className="text-2xl font-bold text-white">Welcome to Analytics Dashboard</div>} />
+          <Route path="posts" element={<PostsSection />} />
+          <Route path="courses" element={<CoursesSection />} />
+          <Route path="posts/new" element={<AdminPostEditor isEdit={false} onSave={async (data) => {
+            await axios.post('/api/posts', data, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } });
+            window.location.href = '/admin/posts';
+          }} />} />
+          <Route path="posts/edit/:id" element={<AdminPostEditorLoader />} />
         </Routes>
       </main>
     </div>
