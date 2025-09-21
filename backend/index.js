@@ -1,3 +1,4 @@
+console.log('Backend index.js loaded from:', __filename);
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

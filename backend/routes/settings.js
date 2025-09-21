@@ -1,5 +1,12 @@
+console.log('Settings routes loaded');
+console.log('Settings routes loaded from:', __filename);
 const express = require('express');
 const router = express.Router();
+
+// Simple test route to verify route registration
+router.get('/test', (req, res) => {
+  res.json({ message: 'Settings route is working!' });
+});
 const { Setting } = require('../models');
 const { authenticateJWT } = require('../middleware/auth');
 

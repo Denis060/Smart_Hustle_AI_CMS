@@ -3,6 +3,10 @@
     "@mantine/core": "^5.10.5",
     "@mantine/hooks": "^5.10.5",
     "@mantine/rte": "^5.10.5",
+    "@tiptap/extension-image": "^3.4.4",
+    "@tiptap/extension-link": "^3.4.4",
+    "@tiptap/react": "^3.4.4",
+    "@tiptap/starter-kit": "^3.4.4",
     "react-quill": "^2.0.0"
   }
 }
