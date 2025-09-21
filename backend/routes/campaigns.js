@@ -10,11 +10,30 @@ router.get('/', authenticateJWT, async (req, res) => {
 });
 
 // Create campaign (admin only)
+const db = require('../models');
+// Enhanced campaign creation with recipient logic
 router.post('/', authenticateJWT, async (req, res) => {
   try {
-    const { subject, body, sentAt } = req.body;
-    const campaign = await Campaign.create({ subject, body, sentAt });
-    res.status(201).json(campaign);
+    const { subject, body, sentAt, recipient } = req.body;
+    let recipients = [];
+    if (recipient === 'all') {
+      // All subscribers
+      recipients = await db.Subscriber.findAll({ attributes: ['email', 'name'] });
+    } else if (recipient && recipient.startsWith('course:')) {
+      // Students in a specific course
+      const courseId = recipient.split(':')[1];
+      const enrollments = await db.CourseEnrollment.findAll({
+        where: { courseId },
+        include: [{ model: db.Student, attributes: ['email', 'name'] }]
+      });
+      recipients = enrollments.map(e => e.Student).filter(Boolean);
+    } else {
+      return res.status(400).json({ error: 'Invalid recipient' });
+    }
+    // Save campaign
+    const campaign = await db.Campaign.create({ subject, body, sentAt });
+    // For now, just log recipients (simulate sending)
+    res.status(201).json({ campaign, recipients });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

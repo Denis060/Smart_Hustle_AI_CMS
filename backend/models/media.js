@@ -15,7 +15,8 @@ module.exports = (sequelize, DataTypes) => {
   }
   Media.init({
     url: DataTypes.STRING,
-    altText: DataTypes.STRING
+    altText: DataTypes.STRING,
+    uploader: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'Media',

@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Courses', {
+  await queryInterface.createTable('Courses', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -29,6 +29,12 @@ module.exports = {
       },
       review: {
         type: Sequelize.TEXT
+      },
+      provider: {
+        type: Sequelize.STRING
+      },
+      level: {
+        type: Sequelize.ENUM('beginner', 'medium', 'advanced')
       },
       createdAt: {
         allowNull: false,

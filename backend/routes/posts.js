@@ -35,8 +35,9 @@ router.get('/', async (req, res) => {
   });
 });
 
-// Get single post by id (only match numeric IDs)
-router.get('/:id(\d+)', async (req, res) => {
+// Get single post by id (manual numeric check)
+router.get('/:id', async (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) return res.status(404).json({ error: 'Not found' });
   const post = await Post.findByPk(req.params.id, { include: [User, Category] });
   if (!post) return res.status(404).json({ error: 'Post not found' });
   res.json(post);

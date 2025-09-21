@@ -25,6 +25,7 @@ module.exports = (sequelize, DataTypes) => {
     external: DataTypes.BOOLEAN,
     affiliateLink: DataTypes.STRING,
     review: DataTypes.TEXT,
+    provider: DataTypes.STRING,
     level: DataTypes.ENUM('beginner', 'medium', 'advanced')
   }, {
     sequelize,

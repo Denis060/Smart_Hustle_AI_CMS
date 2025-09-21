@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-export default function PostComments({ postId }) {
+export default function PostComments({ postId, showForm }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -54,13 +54,15 @@ export default function PostComments({ postId }) {
           </ul>
         )
       )}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2 bg-slate-900 p-4 rounded-lg">
-        <input type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} className="rounded bg-slate-800 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
-        <textarea placeholder="Add a comment..." value={content} onChange={e => setContent(e.target.value)} className="rounded bg-slate-800 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400" rows={3} />
-        <button type="submit" className="rounded bg-cyan-500 px-4 py-2 font-bold text-slate-900 hover:bg-cyan-400 transition">Post Comment</button>
-        {error && <div className="text-rose-400 text-sm mt-1">{error}</div>}
-        {success && <div className="text-emerald-400 text-sm mt-1">{success}</div>}
-      </form>
+      {showForm && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2 bg-slate-900 p-4 rounded-lg">
+          <input type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} className="rounded bg-slate-800 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
+          <textarea placeholder="Add a comment..." value={content} onChange={e => setContent(e.target.value)} className="rounded bg-slate-800 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400" rows={3} />
+          <button type="submit" className="rounded bg-cyan-500 px-4 py-2 font-bold text-slate-900 hover:bg-cyan-400 transition">Post Comment</button>
+          {error && <div className="text-rose-400 text-sm mt-1">{error}</div>}
+          {success && <div className="text-emerald-400 text-sm mt-1">{success}</div>}
+        </form>
+      )}
     </div>
   );
 }

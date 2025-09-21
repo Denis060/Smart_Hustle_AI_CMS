@@ -1,4 +1,55 @@
 import React, { useState, useEffect } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+
+import { useRef } from 'react';
+
+function TiptapMenuBar({ editor }) {
+  const fileInputRef = useRef();
+  if (!editor) return null;
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('uploader', 'Ibrahim Denis Fofanah');
+    try {
+      const res = await axios.post('/api/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      const url = res.data.url;
+      editor.chain().focus().setImage({ src: url }).run();
+    } catch (err) {
+      alert('Image upload failed');
+    }
+  };
+  return (
+    <div className="flex flex-wrap gap-2 border-b border-slate-200 p-2 bg-slate-50 rounded-t items-center">
+      <button type="button" onClick={() => editor.chain().focus().undo().run()} title="Undo">⎌</button>
+      <button type="button" onClick={() => editor.chain().focus().redo().run()} title="Redo">↻</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'font-bold text-cyan-700' : ''} title="Bold">B</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'italic text-cyan-700' : ''} title="Italic">I</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'line-through text-cyan-700' : ''} title="Strikethrough">S</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'text-cyan-700 font-bold' : ''} title="H1">H1</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'text-cyan-700 font-bold' : ''} title="H2">H2</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'text-cyan-700 font-bold' : ''} title="H3">H3</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'text-cyan-700' : ''} title="Bullet List">• List</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'text-cyan-700' : ''} title="Numbered List">1. List</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'text-cyan-700' : ''} title="Blockquote">❝</button>
+      <button type="button" onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={editor.isActive('codeBlock') ? 'text-cyan-700' : ''} title="Code">{'</>'}</button>
+      <button type="button" onClick={() => {
+        const url = window.prompt('Enter link URL');
+        if (url) editor.chain().focus().setLink({ href: url }).run();
+      }} className={editor.isActive('link') ? 'underline text-cyan-700' : ''} title="Link">🔗</button>
+      <button type="button" onClick={() => fileInputRef.current.click()} className="text-cyan-700" title="Upload Image">🖼️</button>
+      <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={e => {
+        if (e.target.files && e.target.files[0]) uploadImage(e.target.files[0]);
+        e.target.value = '';
+      }} />
+      <button type="button" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} className="text-slate-500" title="Clear Formatting">Clear</button>
+    </div>
+  );
+}
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +63,18 @@ export default function AdminPostEditor({ post, onSave, isEdit }) {
     published: p?.published || false,
   });
   const [formData, setFormData] = useState(getInitialForm(post));
+  const editor = useEditor({
+    extensions: [StarterKit, Link, Image],
+    content: formData.content,
+    onUpdate: ({ editor }) => {
+      setFormData(f => ({ ...f, content: editor.getHTML() }));
+    },
+    editorProps: {
+      attributes: {
+        class: 'bg-white rounded p-3 min-h-[200px] focus:outline-none',
+      },
+    },
+  });
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -94,8 +157,11 @@ export default function AdminPostEditor({ post, onSave, isEdit }) {
           <input type="text" name="featuredImage" value={formData.featuredImage} onChange={handleChange} className="w-full p-3 rounded bg-slate-800 text-white" />
         </div>
         <div>
-          <label className="block text-slate-400 mb-1">Body Content (Markdown/Rich Text Supported)</label>
-          <textarea name="content" value={formData.content} onChange={handleChange} className="w-full p-3 rounded bg-slate-800 text-white min-h-[200px]" placeholder="Write your post content here..." />
+          <label className="block text-slate-400 mb-1">Body Content (Rich Text Supported)</label>
+          <div className="border border-slate-300 rounded bg-white">
+            <TiptapMenuBar editor={editor} />
+            <EditorContent editor={editor} />
+          </div>
         </div>
         <div className="flex justify-end">
           <button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg" disabled={saving}>{saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Post'}</button>

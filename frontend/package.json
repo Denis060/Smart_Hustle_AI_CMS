@@ -10,6 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mantine/rte": "^5.10.5",
+    "@tailwindcss/typography": "^0.5.18",
+    "@tiptap/extension-image": "^3.4.4",
+    "@tiptap/extension-link": "^3.4.4",
+    "@tiptap/react": "^3.4.4",
+    "@tiptap/starter-kit": "^3.4.4",
     "axios": "^1.12.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

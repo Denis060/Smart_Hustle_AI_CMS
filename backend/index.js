@@ -11,6 +11,7 @@ app.use(express.json());
 // Serve uploaded images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/posts', express.static(path.join(__dirname, 'uploads/posts')));
 
 // Import routes
 const settingsRoutes = require('./routes/settings');
@@ -23,6 +24,7 @@ const commentsRoutes = require('./routes/comments');
 const tagsRoutes = require('./routes/tags');
 const categoriesRoutes = require('./routes/categories');
 const authRoutes = require('./routes/auth');
+const uploadsRoutes = require('./routes/uploads');
 
 const postInteractionsRoutes = require('./routes/postInteractions');
 const postsRoutes = require('./routes/posts');
@@ -38,6 +40,8 @@ app.use('/api/comments', commentsRoutes);
 app.use('/api/tags', tagsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/auth', authRoutes);
+
+app.use('/api/uploads', uploadsRoutes);
 app.use('/api/posts', postInteractionsRoutes);
 app.use('/api/posts', postsRoutes);
 

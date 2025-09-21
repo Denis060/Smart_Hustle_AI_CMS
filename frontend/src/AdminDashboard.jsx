@@ -388,11 +388,19 @@ function CourseModal({ course, onClose, onSave }) {
 }
 
 import React, { useState, useEffect } from 'react';
+import AdminCompose from './AdminCompose';
+import AdminSubscribers from './AdminSubscribers';
+import AdminCampaigns from './AdminCampaigns';
 import axios from 'axios';
 import EnrollModal from './EnrollModal';
 // removed duplicate import of Routes, Route, useLocation, useNavigate
 import AdminSidebar from './AdminSidebar';
 import AdminPostEditor from './AdminPostEditor';
+import AdminCategories from './AdminCategories';
+import AdminTags from './AdminTags';
+import AdminComments from './AdminComments';
+import AdminMedia from './AdminMedia';
+import AdminSettings from './AdminSettings';
 
 function PostsSection() {
   const [posts, setPosts] = useState([]);
@@ -476,6 +484,14 @@ function AdminDashboard({ onLogout }) {
             window.location.href = '/admin/posts';
           }} />} />
           <Route path="posts/edit/:id" element={<AdminPostEditorLoader />} />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route path="tags" element={<AdminTags />} />
+          <Route path="comments" element={<AdminComments />} />
+          <Route path="media" element={<AdminMedia />} />
+          <Route path="compose" element={<AdminCompose />} />
+          <Route path="subscribers" element={<AdminSubscribers />} />
+          <Route path="campaigns" element={<AdminCampaigns />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Routes>
       </main>
     </div>

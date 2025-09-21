@@ -108,14 +108,23 @@ function Posts() {
           ) : (
             <div className="flex flex-col gap-8">
               {posts.map(post => (
-                <div key={post.id} className="bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-4 border border-slate-700 transition-transform duration-200 hover:scale-[1.01] hover:shadow-2xl cursor-pointer" onClick={() => navigate(`/posts/${post.id}`)}>
-                  <span className="text-cyan-400 text-sm font-bold mb-2">{post.category?.name || 'Post'}</span>
-                  <h2 className="text-2xl font-bold text-white mb-1">{post.title}</h2>
-                  <p className="text-slate-300 mb-2">{post.excerpt || post.content?.slice(0, 160) + '...'}</p>
-                  <div className="flex gap-4 mt-2">
-                    <button className="px-3 py-1 rounded bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition text-sm">Like</button>
-                    <button className="px-3 py-1 rounded bg-slate-700 text-white font-bold hover:bg-slate-600 transition text-sm">Comment</button>
-                    <button className="px-3 py-1 rounded bg-indigo-500 text-white font-bold hover:bg-indigo-400 transition text-sm">Share</button>
+                <div key={post.id} className="bg-slate-800 rounded-2xl shadow p-0 flex flex-col border border-slate-700 transition-transform duration-200 hover:scale-[1.01] hover:shadow-2xl cursor-pointer overflow-hidden" onClick={() => navigate(`/posts/${post.id}`)}>
+                  {post.featuredImage && (
+                    <img src={post.featuredImage} alt="Post" className="w-full h-48 object-cover" />
+                  )}
+                  <div className="p-6 flex flex-col gap-2">
+                    <h2 className="text-2xl font-bold text-white mb-1">{post.title}</h2>
+                    <p className="text-slate-400 text-sm mb-1 flex gap-2 items-center">
+                      <span>By <span className="font-semibold text-cyan-300">Ibrahim Denis Fofanah</span></span>
+                      {post.createdAt && <span className="ml-2">{new Date(post.createdAt).toLocaleDateString()}</span>}
+                      {post.category?.name && <span className="ml-2 px-2 py-1 bg-slate-700 rounded text-xs text-cyan-300">{post.category.name}</span>}
+                    </p>
+                    <div className="prose prose-invert max-w-none text-slate-300 mb-2 line-clamp-4" dangerouslySetInnerHTML={{ __html: post.excerpt || (post.content?.slice(0, 300) + '...') }} />
+                    <div className="flex gap-4 mt-2">
+                      <button className="px-3 py-1 rounded bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition text-sm">Like</button>
+                      <button className="px-3 py-1 rounded bg-slate-700 text-white font-bold hover:bg-slate-600 transition text-sm">Comment</button>
+                      <button className="px-3 py-1 rounded bg-indigo-500 text-white font-bold hover:bg-indigo-400 transition text-sm">Share</button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -259,12 +268,15 @@ function Recommended() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/courses?recommended=true')
+    fetch('/api/courses')
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch recommended');
+        if (!res.ok) throw new Error('Failed to fetch courses');
         return res.json();
       })
-      .then(data => setCourses(data.courses || []))
+      .then(data => {
+        // Only show external (recommended) courses
+        setCourses((data.courses || data).filter(c => c.external === true));
+      })
       .catch(() => setCourses([]))
       .finally(() => setLoading(false));
   }, []);
@@ -279,20 +291,28 @@ function Recommended() {
         <div className="text-slate-400 text-lg">No recommended courses found.</div>
       ) : (
         <div className="flex flex-col md:flex-row gap-8 w-full max-w-6xl justify-center flex-wrap">
-          {courses.map(course => (
-            <div key={course.id} className="flex-1 bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-6 min-w-[320px] max-w-md border border-slate-700 transition-transform duration-200 hover:scale-[1.025] hover:shadow-2xl cursor-pointer">
-              <span className="self-start bg-indigo-200 text-indigo-700 text-xs font-bold px-4 py-1 rounded-full mb-2">{course.badge || course.platform || 'RECOMMENDED'}</span>
-              <h2 className="text-2xl font-bold text-white mb-1">{course.title}</h2>
-              <p className="text-slate-300 mb-4">{course.description}</p>
-              <div className="flex items-center gap-2 text-slate-400 border-t border-slate-700 pt-4 text-sm">
-                <svg className="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Level: {course.level}
+          {courses.map(course => {
+            const provider = course.provider && course.provider.trim() ? course.provider.trim() : '';
+            const providerDisplay = provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'Platform';
+            const level = course.level ? (course.level.charAt(0).toUpperCase() + course.level.slice(1)) : 'Intermediate';
+            return (
+              <div key={course.id} className="flex-1 bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-4 min-w-[320px] max-w-md border border-slate-700 transition-transform duration-200 hover:scale-[1.025] hover:shadow-2xl cursor-pointer">
+                <span className="self-start bg-indigo-200 text-indigo-700 text-xs font-bold px-4 py-1 rounded-full mb-2">
+                  {provider ? providerDisplay : 'Platform'}
+                </span>
+                <h2 className="text-3xl font-extrabold text-white mb-1">{course.title}</h2>
+                <p className="text-slate-300 mb-4 text-lg">{course.description}</p>
+                <hr className="my-2 border-slate-700" />
+                <div className="flex items-center gap-2 text-slate-400 text-base mb-4">
+                  <svg className="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  Level: {level}
+                </div>
+                <a href={course.url || course.affiliateLink || '#'} target="_blank" rel="noopener noreferrer" className="mt-4 w-full inline-block rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold py-3 text-center transition">
+                  {provider ? `Enroll in ${providerDisplay}` : 'Enroll in Platform'}
+                </a>
               </div>
-              <a href={course.url || '#'} target="_blank" rel="noopener noreferrer" className="mt-4 w-full inline-block rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-lg font-bold py-3 text-center transition">
-                {course.platform ? `Enroll on ${course.platform}` : 'Enroll'}
-              </a>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
@@ -384,6 +404,7 @@ function Footer() {
 
 export default function App() {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState(null);
 
@@ -391,23 +412,21 @@ export default function App() {
     e.preventDefault();
     setSubmitting(true); setMsg(null);
     try {
-      // OPTION A: use Vite env base (recommended)
-      // const res = await fetch(`${import.meta.env.VITE_API_URL}/api/subscribers`, {
-      // OPTION B: use a Vite dev proxy (`/api`), if configured in vite.config.js
       const res = await fetch(`/api/subscribers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, name }),
       });
       if (!res.ok) throw new Error((await res.json()).message || 'Subscribe failed');
       setMsg({ type: 'ok', text: 'Subscribed! Check your inbox.' });
       setEmail('');
+      setName('');
     } catch (err) {
       setMsg({ type: 'err', text: err.message });
     } finally {
       setSubmitting(false);
     }
-  }, [email]);
+  }, [email, name]);
 
   const LinkCls = ({ isActive }) =>
     `hover:text-cyan-400 ${isActive ? 'text-cyan-300' : 'text-slate-200'}`;
@@ -480,10 +499,18 @@ export default function App() {
                       </p>
                       <form onSubmit={handleSubscribe} className="mx-auto flex w-full max-w-md flex-col gap-4 md:flex-row">
                         <input
+                          type="text"
+                          required
+                          value={name}
+                          onChange={e => setName(e.target.value)}
+                          placeholder="Your name"
+                          className="flex-1 rounded bg-slate-800 px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        />
+                        <input
                           type="email"
                           required
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={e => setEmail(e.target.value)}
                           placeholder="Your email"
                           className="flex-1 rounded bg-slate-800 px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                         />
