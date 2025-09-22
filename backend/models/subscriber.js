@@ -15,7 +15,16 @@ module.exports = (sequelize, DataTypes) => {
   }
   Subscriber.init({
     email: DataTypes.STRING,
-    name: DataTypes.STRING
+    name: DataTypes.STRING,
+    unsubscribed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    unsubscribeToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
   }, {
     sequelize,
     modelName: 'Subscriber',

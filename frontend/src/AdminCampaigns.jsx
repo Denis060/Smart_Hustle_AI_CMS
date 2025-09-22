@@ -27,9 +27,11 @@ export default function AdminCampaigns() {
       <h2 className="text-4xl font-bold text-white mb-8">Campaign History</h2>
       <div className="rounded-2xl overflow-hidden border border-slate-700 bg-[#1a2236]">
         <div className="grid grid-cols-12 gap-0 bg-slate-800 text-slate-300 text-lg font-semibold px-8 py-4">
-          <div className="col-span-6">SUBJECT</div>
-          <div className="col-span-3">RECIPIENTS</div>
-          <div className="col-span-3">DATE SENT</div>
+          <div className="col-span-4">SUBJECT</div>
+          <div className="col-span-2">RECIPIENTS</div>
+          <div className="col-span-2">SENT</div>
+          <div className="col-span-2">FAILED</div>
+          <div className="col-span-2">OPENED</div>
         </div>
         {loading ? (
           <div className="p-8 text-center text-slate-400">Loading...</div>
@@ -38,9 +40,11 @@ export default function AdminCampaigns() {
         ) : (
           campaigns.map(c => (
             <div key={c.id} className="grid grid-cols-12 gap-0 px-8 py-5 border-b border-slate-700 last:border-b-0 items-center text-white text-lg">
-              <div className="col-span-6">{c.subject}</div>
-              <div className="col-span-3">{getRecipientLabel(c)}</div>
-              <div className="col-span-3">{c.sentAt ? c.sentAt.slice(0, 10) : ''}</div>
+              <div className="col-span-4">{c.subject}</div>
+              <div className="col-span-2">{getRecipientLabel(c)}</div>
+              <div className="col-span-2">{c.sentCount ?? 0}</div>
+              <div className="col-span-2">{c.failCount ?? 0}</div>
+              <div className="col-span-2">{c.openCount ?? 0}</div>
             </div>
           ))
         )}

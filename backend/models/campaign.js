@@ -16,7 +16,23 @@ module.exports = (sequelize, DataTypes) => {
   Campaign.init({
     subject: DataTypes.STRING,
     body: DataTypes.TEXT,
-    sentAt: DataTypes.DATE
+    sentAt: DataTypes.DATE,
+    sentCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    failCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    openCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    scheduledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   }, {
     sequelize,
     modelName: 'Campaign',

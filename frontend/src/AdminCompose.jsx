@@ -31,8 +31,9 @@ export default function AdminCompose() {
   });
   const [recipient, setRecipient] = useState('all');
   const [courses, setCourses] = useState([]);
+  const [scheduledAt, setScheduledAt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState("");
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
@@ -54,12 +55,34 @@ export default function AdminCompose() {
     setSuccess(false);
     try {
       const token = localStorage.getItem('adminToken');
+      let scheduledAtUtc = scheduledAt;
+      if (scheduledAt) {
+        // Convert local datetime to UTC string
+        const local = new Date(scheduledAt);
+        scheduledAtUtc = local.toISOString();
+      }
       await axios.post('/api/campaigns', {
         subject,
         body,
-        recipient
+        recipient,
+        scheduledAt: scheduledAtUtc || undefined
       }, token ? { headers: { Authorization: `Bearer ${token}` } } : {});
-      setSuccess(true);
+        <div>
+          <label className="block text-slate-400 mb-2 text-lg">Send At (optional)</label>
+          <input
+            type="datetime-local"
+            className="w-full p-4 rounded bg-slate-800 text-white text-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            value={scheduledAt}
+            onChange={e => setScheduledAt(e.target.value)}
+          />
+        </div>
+      if (scheduledAt) {
+        // Show scheduled message with local time
+        const localTime = new Date(scheduledAt).toLocaleString();
+        setSuccess(`Newsletter scheduled for ${localTime} successfully!`);
+      } else {
+        setSuccess("Newsletter sent successfully!");
+      }
       setSubject('');
       setBody('');
       setRecipient('all');
@@ -113,7 +136,16 @@ export default function AdminCompose() {
           )}
         </div>
         {error && <div className="text-red-400 text-base">{error}</div>}
-        {success && <div className="text-green-400 text-base">Newsletter sent successfully!</div>}
+  {success && <div className="text-green-400 text-base">{success}</div>}
+        <div>
+          <label className="block text-slate-400 mb-2 text-lg">Send At (optional)</label>
+          <input
+            type="datetime-local"
+            className="w-full p-4 rounded bg-slate-800 text-white text-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            value={scheduledAt}
+            onChange={e => setScheduledAt(e.target.value)}
+          />
+        </div>
         <div className="flex justify-end gap-4">
           <button
             type="button"

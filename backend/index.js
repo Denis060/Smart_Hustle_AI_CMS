@@ -1,3 +1,74 @@
+// Scheduled Campaign Sender
+const { Op } = require('sequelize');
+const nodemailer = require('nodemailer');
+setInterval(async () => {
+  try {
+    const now = new Date();
+    // Find campaigns scheduled in the past that have not been sent
+    const pending = await db.Campaign.findAll({
+      where: {
+        scheduledAt: { [Op.lte]: now },
+        sentAt: null
+      }
+    });
+    for (const campaign of pending) {
+      // Load recipients
+      let recipients = [];
+      if (campaign.recipient === 'all') {
+        recipients = await db.Subscriber.findAll({ attributes: ['email', 'name'] });
+      } else if (campaign.recipient && campaign.recipient.startsWith('course:')) {
+        const courseId = campaign.recipient.split(':')[1];
+        const enrollments = await db.CourseEnrollment.findAll({
+          where: { courseId },
+          include: [{ model: db.Student, attributes: ['email', 'name'] }]
+        });
+        recipients = enrollments.map(e => e.Student).filter(Boolean);
+      }
+      // Load SMTP/email settings
+      const settingsArr = await db.Setting.findAll();
+      const get = key => settingsArr.find(s => s.key === key)?.value || '';
+      const smtp_host = get('smtp_host');
+      const smtp_port = parseInt(get('smtp_port'), 10) || 587;
+      const smtp_user = get('smtp_user');
+      const smtp_pass = get('smtp_pass');
+      const from_email = get('from_email');
+      const from_name = get('from_name') || from_email;
+      const smtp_secure = smtp_port === 465;
+      if (!smtp_host || !smtp_port || !smtp_user || !smtp_pass || !from_email) continue;
+      const transporter = nodemailer.createTransport({
+        host: smtp_host,
+        port: smtp_port,
+        secure: smtp_secure,
+        auth: { user: smtp_user, pass: smtp_pass },
+      });
+      let sentCount = 0;
+      let failed = 0;
+      for (const r of recipients) {
+        try {
+          const personalizedText = campaign.body.replace(/\{name\}/gi, r.name || '');
+          const personalizedHtml = campaign.body.replace(/\{name\}/gi, r.name || '');
+          await transporter.sendMail({
+            from: `${from_name} <${from_email}>`,
+            to: r.email,
+            subject: campaign.subject,
+            text: personalizedText,
+            html: personalizedHtml
+          });
+          sentCount++;
+        } catch (e) {
+          failed++;
+        }
+      }
+      campaign.sentAt = new Date();
+      campaign.sentCount = sentCount;
+      campaign.failCount = failed;
+      await campaign.save();
+      console.log(`Scheduled campaign sent: ${campaign.subject} (${sentCount} sent, ${failed} failed)`);
+    }
+  } catch (err) {
+    console.error('Scheduled campaign sender error:', err);
+  }
+}, 60000); // every 60 seconds
 console.log('Backend index.js loaded from:', __filename);
 require('dotenv').config();
 const express = require('express');
@@ -15,6 +86,7 @@ app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads/posts', express.static(path.join(__dirname, 'uploads/posts')));
 
 // Import routes
+
 const settingsRoutes = require('./routes/settings');
 const campaignsRoutes = require('./routes/campaigns');
 const subscribersRoutes = require('./routes/subscribers');
@@ -26,11 +98,19 @@ const tagsRoutes = require('./routes/tags');
 const categoriesRoutes = require('./routes/categories');
 const authRoutes = require('./routes/auth');
 const uploadsRoutes = require('./routes/uploads');
+const analyticsRoutes = require('./routes/analytics');
 
 const postInteractionsRoutes = require('./routes/postInteractions');
 const postsRoutes = require('./routes/posts');
 
 // Use routes
+
+
+// Register all admin and public API routes
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/uploads', uploadsRoutes);
+app.use('/api/posts', postInteractionsRoutes);
+app.use('/api/posts', postsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/campaigns', campaignsRoutes);
 app.use('/api/subscribers', subscribersRoutes);
@@ -41,10 +121,6 @@ app.use('/api/comments', commentsRoutes);
 app.use('/api/tags', tagsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/auth', authRoutes);
-
-app.use('/api/uploads', uploadsRoutes);
-app.use('/api/posts', postInteractionsRoutes);
-app.use('/api/posts', postsRoutes);
 
 
 // About page route (simple static for now)

@@ -14,19 +14,22 @@ const db = require('../models');
 // Enhanced campaign creation with recipient logic
 router.post('/', authenticateJWT, async (req, res) => {
   try {
-    const { subject, body, sentAt, recipient } = req.body;
+  const { subject, body, sentAt, recipient, scheduledAt } = req.body;
     let recipients = [];
     if (recipient === 'all') {
-      // All subscribers
-      recipients = await db.Subscriber.findAll({ attributes: ['email', 'name'] });
+      // All subscribers (not unsubscribed)
+      recipients = await db.Subscriber.findAll({
+        where: { unsubscribed: false },
+        attributes: ['email', 'name', 'unsubscribeToken', 'unsubscribed']
+      });
     } else if (recipient && recipient.startsWith('course:')) {
-      // Students in a specific course
+      // Students in a specific course (not unsubscribed)
       const courseId = recipient.split(':')[1];
       const enrollments = await db.CourseEnrollment.findAll({
         where: { courseId },
-        include: [{ model: db.Student, attributes: ['email', 'name'] }]
+        include: [{ model: db.Student, attributes: ['email', 'name', 'unsubscribeToken', 'unsubscribed'] }]
       });
-      recipients = enrollments.map(e => e.Student).filter(Boolean);
+      recipients = enrollments.map(e => e.Student).filter(r => r && r.unsubscribed === false);
     } else {
       return res.status(400).json({ error: 'Invalid recipient' });
     }
@@ -54,23 +57,45 @@ router.post('/', authenticateJWT, async (req, res) => {
     // Send emails to all recipients
     let sentCount = 0;
     let failed = [];
+    // Personalization: replace {name} with recipient's name
     for (const r of recipients) {
       try {
+        // Always replace {name} in both text and HTML
+        const personalizedText = body.replace(/\{name\}/gi, r.name || '');
+        const personalizedHtml = body.replace(/\{name\}/gi, r.name || '');
+        // Unsubscribe link
+        let unsubscribeUrl = '';
+        if (r.unsubscribeToken) {
+          const baseUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
+          unsubscribeUrl = `${baseUrl}/unsubscribe/${r.unsubscribeToken}`;
+        }
+        // Append unsubscribe link to email
+        const htmlWithUnsub = personalizedHtml + `<br><br><div style='font-size:13px;color:#888'>If you wish to unsubscribe, <a href='${unsubscribeUrl}'>click here</a>.</div>`;
+        const textWithUnsub = personalizedText + `\n\nTo unsubscribe, visit: ${unsubscribeUrl}`;
         await transporter.sendMail({
           from: `${from_name} <${from_email}>`,
           to: r.email,
           subject,
-          text: body,
-          html: `<p>${body.replace(/\n/g, '<br>')}</p>`
+          text: textWithUnsub,
+          html: htmlWithUnsub
         });
         sentCount++;
       } catch (e) {
         failed.push({ email: r.email, error: e.message });
       }
     }
+    // Note: {name} personalization is supported in the email body.
     // Save campaign with sentAt if at least one sent
     const sentAtVal = sentCount > 0 ? new Date() : null;
-    const campaign = await db.Campaign.create({ subject, body, sentAt: sentAtVal });
+    const campaign = await db.Campaign.create({
+      subject,
+      body,
+      sentAt: sentAtVal,
+      sentCount,
+      failCount: failed.length,
+      openCount: 0,
+      scheduledAt: scheduledAt || null
+    });
     res.status(201).json({ campaign, sent: sentCount, failed });
   } catch (err) {
     res.status(400).json({ error: err.message });

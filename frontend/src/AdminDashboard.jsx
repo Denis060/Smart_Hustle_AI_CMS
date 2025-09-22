@@ -117,12 +117,26 @@ function CoursesSection() {
 
   const handleModalSave = async (formData) => {
     try {
+      // Always use FormData for course creation/editing to support file upload
+      let dataToSend;
+      if (formData instanceof FormData) {
+        dataToSend = formData;
+      } else {
+        dataToSend = new FormData();
+        Object.entries(formData).forEach(([key, value]) => dataToSend.append(key, value));
+      }
+      const config = {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      };
       if (editingCourse) {
-  await axios.put(`/api/courses/${editingCourse.id}`, formData, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } });
+        await axios.put(`/api/courses/${editingCourse.id}`, dataToSend, config);
         setIsModalOpen(false);
         fetchCourses();
       } else {
-  const res = await axios.post('/api/courses', formData, { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } });
+        const res = await axios.post('/api/courses', dataToSend, config);
         setIsModalOpen(false);
         // Optimistically add the new course to the list if response contains it
         if (res.data && res.data.id) {
@@ -132,6 +146,7 @@ function CoursesSection() {
         }
       }
     } catch (err) {
+      // 'err' is used in the alert below; this suppresses the lint warning
       alert('Failed to save course: ' + (err.response?.data?.error || err.message));
     }
   };
@@ -395,6 +410,7 @@ import axios from 'axios';
 import EnrollModal from './EnrollModal';
 // removed duplicate import of Routes, Route, useLocation, useNavigate
 import AdminSidebar from './AdminSidebar';
+import AdminAnalytics from './AdminAnalytics';
 import AdminPostEditor from './AdminPostEditor';
 import AdminCategories from './AdminCategories';
 import AdminTags from './AdminTags';
@@ -470,13 +486,23 @@ function PostsSection() {
   );
 }
 
+
+
+function getActiveTab(pathname) {
+  if (pathname === '/admin' || pathname === '/admin/') return 'analytics';
+  const match = pathname.match(/^\/admin\/(\w+)/);
+  return match ? match[1] : null;
+}
+
 function AdminDashboard({ onLogout }) {
+  const location = useLocation();
+  const activeTab = getActiveTab(location.pathname);
   return (
     <div className="bg-slate-900 text-slate-300 min-h-screen flex">
-      <AdminSidebar active={null} onLogout={onLogout} />
+      <AdminSidebar active={activeTab} onLogout={onLogout} />
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         <Routes>
-          <Route path="" element={<div className="text-2xl font-bold text-white">Welcome to Analytics Dashboard</div>} />
+          <Route path="" element={<AdminAnalytics />} />
           <Route path="posts" element={<PostsSection />} />
           <Route path="courses" element={<CoursesSection />} />
           <Route path="posts/new" element={<AdminPostEditor isEdit={false} onSave={async (data) => {
