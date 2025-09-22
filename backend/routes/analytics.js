@@ -5,13 +5,13 @@ const db = require('../models');
 // Analytics summary endpoint
 router.get('/summary', async (req, res) => {
   try {
-    const [courses, subscribers, posts, enrollments, campaigns, totalStudents] = await Promise.all([
+    const [courses, totalStudents, subscribers, posts, enrollments, campaigns] = await Promise.all([
       db.Course.count(),
+      db.Student.count(),
       db.Subscriber.count({ where: { unsubscribed: false } }),
       db.Post.count(),
       db.CourseEnrollment.count(),
-      db.Campaign.count(),
-      db.Student.count()
+      db.Campaign.count()
     ]);
     console.log('[ANALYTICS] courses:', courses, 'totalStudents:', totalStudents, 'subscribers:', subscribers, 'posts:', posts, 'enrollments:', enrollments, 'campaigns:', campaigns);
     res.json({
