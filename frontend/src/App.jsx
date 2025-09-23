@@ -341,13 +341,13 @@ function Recommended() {
     <div className="min-h-screen py-12 px-4">
       {/* Header Section */}
       <div className="max-w-6xl mx-auto text-center mb-16">
-        <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-4 py-2 mb-6">
+        <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full px-4 py-2 mb-6">
           <span className="text-2xl">⭐</span>
-          <span className="text-yellow-300 text-sm font-medium">Personally Curated by Denis</span>
+          <span className="text-cyan-300 text-sm font-medium">Personally Curated by Denis</span>
         </div>
         
         <h1 className="text-4xl md:text-6xl font-bold mb-6">
-          <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
             Recommended Courses
           </span>
         </h1>
@@ -381,15 +381,15 @@ function Recommended() {
               const difficulty = course.difficulty ? course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1) : level;
               
               return (
-                <div key={course.id} className="bg-slate-800 rounded-2xl border border-slate-700 hover:border-yellow-500/50 transition-all duration-300 hover:transform hover:scale-105 group overflow-hidden">
+                <div key={course.id} className="bg-slate-800 rounded-2xl border border-slate-700 hover:border-cyan-500/50 transition-all duration-300 hover:transform hover:scale-105 group overflow-hidden">
                   {/* Header */}
                   <div className="p-6 pb-4">
                     <div className="flex items-center justify-between mb-4">
-                      <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-3 py-1 rounded-full">
+                      <span className="bg-gradient-to-r from-cyan-400 to-purple-400 text-white text-xs font-bold px-3 py-1 rounded-full">
                         {providerDisplay}
                       </span>
                       {course.featured && (
-                        <div className="flex items-center gap-1 text-yellow-400">
+                        <div className="flex items-center gap-1 text-cyan-400">
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
@@ -398,7 +398,7 @@ function Recommended() {
                       )}
                     </div>
                     
-                    <h2 className="text-xl font-bold text-white mb-3 group-hover:text-yellow-400 transition-colors">
+                    <h2 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">
                       {course.title}
                     </h2>
                     
@@ -423,7 +423,7 @@ function Recommended() {
                     {/* Price */}
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-slate-400 text-sm">Price:</span>
-                      <span className={`font-bold ${course.price > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                      <span className={`font-bold ${course.price > 0 ? 'text-cyan-400' : 'text-green-400'}`}>
                         {course.price > 0 ? `$${course.price}` : 'FREE'}
                       </span>
                     </div>
@@ -435,7 +435,7 @@ function Recommended() {
                         <div className="text-slate-300 text-xs">
                           {course.prerequisites.slice(0, 2).map((prereq, index) => (
                             <div key={index} className="flex items-start gap-1">
-                              <span className="text-yellow-400 mt-1">•</span>
+                              <span className="text-cyan-400 mt-1">•</span>
                               <span>{prereq}</span>
                             </div>
                           ))}
@@ -450,7 +450,7 @@ function Recommended() {
                       href={course.affiliateLink || course.url || '#'} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="block w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold py-3 px-4 rounded-lg text-center transition-all duration-300 transform hover:scale-105"
+                      className="block w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-bold py-3 px-4 rounded-lg text-center transition-all duration-300 transform hover:scale-105"
                     >
                       Enroll on {providerDisplay}
                     </a>
