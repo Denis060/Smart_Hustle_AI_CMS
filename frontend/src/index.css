@@ -23,6 +23,14 @@ h1 {
   line-height: 1.1;
 }
 
+/* Custom utility classes */
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;

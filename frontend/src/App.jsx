@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
 import PublicCourses from './PublicCourses';
+import Homepage from './Homepage';
+import StudentDashboard from './StudentDashboard';
 function AdminRoute() {
   const [authed, setAuthed] = useState(!!localStorage.getItem('adminToken'));
   const navigate = useNavigate();
@@ -18,7 +20,7 @@ function AdminRoute() {
   if (!authed) return <AdminLogin onLogin={handleLogin} />;
   return <AdminDashboard onLogout={handleLogout} />;
 }
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 
 import { Link } from 'react-router-dom';
@@ -265,59 +267,229 @@ function MyCourses() {
 function Recommended() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetch('/api/courses')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch courses');
-        return res.json();
-      })
-      .then(data => {
-        // Only show external (recommended) courses
-        setCourses((data.courses || data).filter(c => c.external === true));
-      })
-      .catch(() => setCourses([]))
-      .finally(() => setLoading(false));
+    let isMounted = true;
+    
+    const fetchCourses = async () => {
+      try {
+        if (!isMounted) return;
+        
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/courses');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch courses: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!isMounted) return;
+        
+        const externalCourses = Array.isArray(data) ? data.filter(course => course && course.external === true) : [];
+        setCourses(externalCourses);
+        
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Error fetching courses:', err);
+        setError(err.message);
+        setCourses([]);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCourses();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen py-12 px-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-slate-400 text-lg">Loading recommended courses...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen py-12 px-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">Error Loading Courses</h3>
+          <p className="text-slate-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section className="py-16 min-h-[70vh] flex flex-col items-center justify-center">
-      <h1 className="text-5xl font-extrabold text-center mb-4">Recommended Learning</h1>
-      <p className="text-lg text-slate-300 text-center mb-12 max-w-2xl">A curated list of the best courses to accelerate your data science journey.</p>
-      {loading ? (
-        <div className="text-slate-400 text-lg">Loading recommended courses...</div>
-      ) : courses.length === 0 ? (
-        <div className="text-slate-400 text-lg">No recommended courses found.</div>
-      ) : (
-        <div className="flex flex-col md:flex-row gap-8 w-full max-w-6xl justify-center flex-wrap">
-          {courses.map(course => {
-            const provider = course.provider && course.provider.trim() ? course.provider.trim() : '';
-            const providerDisplay = provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'Platform';
-            const level = course.level ? (course.level.charAt(0).toUpperCase() + course.level.slice(1)) : 'Intermediate';
-            return (
-              <div key={course.id} className="flex-1 bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-4 min-w-[320px] max-w-md border border-slate-700 transition-transform duration-200 hover:scale-[1.025] hover:shadow-2xl cursor-pointer">
-                <span className="self-start bg-indigo-200 text-indigo-700 text-xs font-bold px-4 py-1 rounded-full mb-2">
-                  {provider ? providerDisplay : 'Platform'}
-                </span>
-                <h2 className="text-3xl font-extrabold text-white mb-1">{course.title}</h2>
-                <p className="text-slate-300 mb-4 text-lg">{course.description}</p>
-                <hr className="my-2 border-slate-700" />
-                <div className="flex items-center gap-2 text-slate-400 text-base mb-4">
-                  <svg className="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  Level: {level}
+    <div className="min-h-screen py-12 px-4">
+      {/* Header Section */}
+      <div className="max-w-6xl mx-auto text-center mb-16">
+        <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-4 py-2 mb-6">
+          <span className="text-2xl">⭐</span>
+          <span className="text-yellow-300 text-sm font-medium">Personally Curated by Denis</span>
+        </div>
+        
+        <h1 className="text-4xl md:text-6xl font-bold mb-6">
+          <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+            Recommended Courses
+          </span>
+        </h1>
+        
+        <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+          These are the exact courses that transformed my understanding of AI and helped me build a successful career. 
+          Each one is battle-tested and delivers real value.
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto">
+        {courses.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">No recommendations yet</h3>
+            <p className="text-slate-400">Check back soon for hand-picked courses!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {courses.map(course => {
+              if (!course) return null;
+              
+              const provider = course.provider?.trim() || '';
+              const providerDisplay = provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'Platform';
+              const level = course.level ? course.level.charAt(0).toUpperCase() + course.level.slice(1) : 'Intermediate';
+              const difficulty = course.difficulty ? course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1) : level;
+              
+              return (
+                <div key={course.id} className="bg-slate-800 rounded-2xl border border-slate-700 hover:border-yellow-500/50 transition-all duration-300 hover:transform hover:scale-105 group overflow-hidden">
+                  {/* Header */}
+                  <div className="p-6 pb-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-3 py-1 rounded-full">
+                        {providerDisplay}
+                      </span>
+                      {course.featured && (
+                        <div className="flex items-center gap-1 text-yellow-400">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span className="text-xs font-semibold">Featured</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <h2 className="text-xl font-bold text-white mb-3 group-hover:text-yellow-400 transition-colors">
+                      {course.title}
+                    </h2>
+                    
+                    <p className="text-slate-300 text-sm leading-relaxed mb-4 line-clamp-3">
+                      {course.description}
+                    </p>
+                  </div>
+
+                  {/* Course Details */}
+                  <div className="px-6 pb-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="text-center bg-slate-700 rounded-lg py-2">
+                        <div className="text-slate-400 text-xs">Level</div>
+                        <div className="text-white font-semibold text-sm">{difficulty}</div>
+                      </div>
+                      <div className="text-center bg-slate-700 rounded-lg py-2">
+                        <div className="text-slate-400 text-xs">Duration</div>
+                        <div className="text-white font-semibold text-sm">{course.duration || 'Self-paced'}</div>
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-slate-400 text-sm">Price:</span>
+                      <span className={`font-bold ${course.price > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                        {course.price > 0 ? `$${course.price}` : 'FREE'}
+                      </span>
+                    </div>
+
+                    {/* Prerequisites */}
+                    {course.prerequisites && Array.isArray(course.prerequisites) && course.prerequisites.length > 0 && (
+                      <div className="mb-4">
+                        <div className="text-slate-400 text-xs mb-2">Prerequisites:</div>
+                        <div className="text-slate-300 text-xs">
+                          {course.prerequisites.slice(0, 2).map((prereq, index) => (
+                            <div key={index} className="flex items-start gap-1">
+                              <span className="text-yellow-400 mt-1">•</span>
+                              <span>{prereq}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CTA */}
+                  <div className="p-6 pt-0">
+                    <a 
+                      href={course.affiliateLink || course.url || '#'} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="block w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold py-3 px-4 rounded-lg text-center transition-all duration-300 transform hover:scale-105"
+                    >
+                      Enroll on {providerDisplay}
+                    </a>
+                  </div>
                 </div>
-                <a href={course.url || course.affiliateLink || '#'} target="_blank" rel="noopener noreferrer" className="mt-4 w-full inline-block rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold py-3 text-center transition">
-                  {provider ? `Enroll in ${providerDisplay}` : 'Enroll in Platform'}
-                </a>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom CTA */}
+      {courses.length > 0 && (
+        <div className="max-w-4xl mx-auto mt-16 text-center">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-white mb-4">Want My Personal Learning Path?</h3>
+            <p className="text-slate-300 mb-6">
+              Get my step-by-step guide on which courses to take and in what order for maximum impact.
+            </p>
+            <button 
+              onClick={() => {
+                const newsletter = document.getElementById('newsletter');
+                if (newsletter) {
+                  newsletter.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  window.location.href = '/#newsletter';
+                }
+              }}
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300"
+            >
+              Get the Learning Path (Free)
+            </button>
+          </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }
+
 function About() {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -366,7 +538,8 @@ function Header() {
           <NavLink to="/" end className={LinkCls}>Home</NavLink>
           <NavLink to="/courses" className={LinkCls}>Courses</NavLink>
           <NavLink to="/recommended" className={LinkCls}>Recommended</NavLink>
-          <NavLink to="/posts" className={LinkCls}>Posts</NavLink>
+          <NavLink to="/dashboard" className={LinkCls}>Dashboard</NavLink>
+          <NavLink to="/posts" className={LinkCls}>Blog</NavLink>
           <NavLink to="/about" className={LinkCls}>About</NavLink>
         </nav>
       </div>
@@ -403,31 +576,6 @@ function Footer() {
 
 
 export default function App() {
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState(null);
-
-  const handleSubscribe = useCallback(async (e) => {
-    e.preventDefault();
-    setSubmitting(true); setMsg(null);
-    try {
-      const res = await fetch(`/api/subscribers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name }),
-      });
-      if (!res.ok) throw new Error((await res.json()).message || 'Subscribe failed');
-      setMsg({ type: 'ok', text: 'Subscribed! Check your inbox.' });
-      setEmail('');
-      setName('');
-    } catch (err) {
-      setMsg({ type: 'err', text: err.message });
-    } finally {
-      setSubmitting(false);
-    }
-  }, [email, name]);
-
   const LinkCls = ({ isActive }) =>
     `hover:text-cyan-400 ${isActive ? 'text-cyan-300' : 'text-slate-200'}`;
 
@@ -449,89 +597,8 @@ export default function App() {
                   <Routes>
                     <Route
                       path="/"
-                      element={
-                        <section className="py-16">
-                          <div className="text-center">
-                      <h1 className="mb-4 text-4xl font-extrabold text-cyan-400 md:text-6xl">
-                        Empower Your Hustle with AI
-                      </h1>
-                      <p className="mx-auto mb-8 max-w-2xl text-lg text-slate-300 md:text-2xl">
-                        Learn, grow, and stay ahead with curated AI content, tutorials, and courses for modern entrepreneurs and creators.
-                      </p>
-                      <a href="#newsletter" className="inline-block rounded bg-cyan-500 px-8 py-3 text-lg font-bold text-slate-900 shadow hover:bg-cyan-400 transition">
-                        Join the Newsletter
-                      </a>
-                    </div>
-
-                    {/* Featured sections (as you had) */}
-                    <section className="py-16">
-                      <h2 className="text-4xl font-bold text-center mb-2">Featured Blog of the Week</h2>
-                      <p className="text-lg text-slate-400 text-center mb-8">Fresh insights from the blog.</p>
-                      <div className="max-w-2xl mx-auto bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-4 transform transition duration-200 hover:scale-[1.025] hover:shadow-2xl focus-within:scale-[1.025] focus-within:shadow-2xl cursor-pointer">
-                        <span className="text-cyan-300 text-sm font-bold mb-2">AI & Automation</span>
-                        <h3 className="text-2xl font-bold text-white mb-1">How to Automate Reports with Python & AI</h3>
-                        <p className="text-slate-300 mb-2">This practical guide provides the full Python script to automate your reporting process, saving you hours every week. Perfect for business analysts and data scientists.</p>
-                        <a href="#" className="text-cyan-400 font-semibold hover:underline text-base mt-2">Read More &rarr;</a>
-                      </div>
-                    </section>
-                    <section className="py-16">
-                      <h2 className="text-4xl font-bold text-center mb-2">Course Highlight</h2>
-                      <p className="text-lg text-slate-400 text-center mb-8">My top recommendation for aspiring AI developers.</p>
-                      <div className="max-w-2xl mx-auto bg-slate-800 rounded-2xl shadow p-8 flex flex-col gap-6 transform transition duration-200 hover:scale-[1.025] hover:shadow-2xl focus-within:scale-[1.025] focus-within:shadow-2xl cursor-pointer">
-                        <div className="flex flex-col gap-2">
-                          <span className="self-start bg-indigo-500/20 text-indigo-300 text-xs font-bold px-4 py-1 rounded-full mb-2">COURSERA</span>
-                          <h3 className="text-2xl font-bold text-white mb-1">Deep Learning Specialization</h3>
-                          <p className="text-slate-300 mb-2">This is the foundational course that took me from understanding basic ML to truly grasping deep learning. Andrew Ng is an unparalleled teacher.</p>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-400 border-t border-slate-700 pt-4 text-sm">
-                          <svg className="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                          Level: Intermediate
-                        </div>
-                        <a href="https://www.coursera.org/specializations/deep-learning" target="_blank" rel="noopener noreferrer" className="mt-4 w-full inline-block rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-lg font-bold py-3 text-center transition">Enroll on Coursera</a>
-                      </div>
-                    </section>
-
-                    {/* Newsletter */}
-                    <section id="newsletter" className="mt-16 rounded-lg border border-slate-800 bg-slate-950 p-8 text-center">
-                      <h2 className="mb-2 text-2xl font-bold text-cyan-400">Stay in the Loop</h2>
-                      <p className="mb-6 text-slate-300">
-                        Get the latest AI tips, tutorials, and course updates straight to your inbox.
-                      </p>
-                      <form onSubmit={handleSubscribe} className="mx-auto flex w-full max-w-md flex-col gap-4 md:flex-row">
-                        <input
-                          type="text"
-                          required
-                          value={name}
-                          onChange={e => setName(e.target.value)}
-                          placeholder="Your name"
-                          className="flex-1 rounded bg-slate-800 px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                        />
-                        <input
-                          type="email"
-                          required
-                          value={email}
-                          onChange={e => setEmail(e.target.value)}
-                          placeholder="Your email"
-                          className="flex-1 rounded bg-slate-800 px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                        />
-                        <button
-                          type="submit"
-                          disabled={submitting}
-                          className="rounded bg-cyan-500 px-6 py-2 font-bold text-slate-900 hover:bg-cyan-400 disabled:opacity-60"
-                          aria-label="Subscribe to newsletter"
-                        >
-                          {submitting ? 'Subscribing…' : 'Subscribe'}
-                        </button>
-                      </form>
-                      {msg && (
-                        <p className={`mt-3 text-sm ${msg.type === 'ok' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {msg.text}
-                        </p>
-                      )}
-                    </section>
-                  </section>
-                }
-              />
+                      element={<Homepage />}
+                    />
               <Route path="/posts" element={<Posts />} />
               <Route path="/posts/:id" element={<Suspense fallback={<div className='text-slate-400 p-8'>Loading post...</div>}><PostDetail /></Suspense>} />
               <Route path="/my-courses" element={<MyCourses />} />
@@ -539,13 +606,8 @@ export default function App() {
               <Route path="/about" element={<About />} />
               <Route path="/admin/*" element={<AdminRoute />} />
               <Route path="/courses" element={<PublicCourses />} />
+              <Route path="/dashboard" element={<StudentDashboard />} />
               <Route path="*" element={<div className="p-8 text-center text-rose-400 text-xl">404 – Page Not Found</div>} />
-                    <Route path="posts" element={<Posts />} />
-                    <Route path="posts/:id" element={<Suspense fallback={<div className='text-slate-400 p-8'>Loading post...</div>}><PostDetail /></Suspense>} />
-                    <Route path="my-courses" element={<MyCourses />} />
-                    <Route path="recommended" element={<Recommended />} />
-                    <Route path="about" element={<About />} />
-                    <Route path="*" element={<div className="p-8 text-center text-rose-400 text-xl">404 – Page Not Found</div>} />
                   </Routes>
                 </div>
               </main>

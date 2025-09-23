@@ -72,9 +72,38 @@ function CoursesSection() {
   const [studentsModalCourse, setStudentsModalCourse] = useState(null);
   const [studentsList, setStudentsList] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [filters, setFilters] = useState({ status: '', search: '', category: '' });
+  const [categories, setCategories] = useState([]);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Filter courses based on current filters
+  const getFilteredCourses = () => {
+    return courses.filter(course => {
+      if (filters.search && !course.title.toLowerCase().includes(filters.search.toLowerCase()) && 
+          !course.description?.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false;
+      }
+      if (filters.status && course.status !== filters.status) {
+        return false;
+      }
+      if (filters.category && course.categoryId !== parseInt(filters.category)) {
+        return false;
+      }
+      return true;
+    });
+  };
 
   const fetchCourses = () => {
-    axios.get('/api/courses')
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.category) params.append('category', filters.category);
+    
+    axios.get(`/api/courses?${params.toString()}`)
       .then(res => {
         console.log('Courses API response:', res.data);
         if (Array.isArray(res.data)) {
@@ -91,9 +120,16 @@ function CoursesSection() {
       });
   };
 
+  const fetchCategories = () => {
+    axios.get('/api/categories')
+      .then(res => setCategories(res.data))
+      .catch(() => setCategories([]));
+  };
+
   useEffect(() => {
     fetchCourses();
-  }, []);
+    fetchCategories();
+  }, [filters]);
 
   const handleAdd = () => {
     setEditingCourse(null);
@@ -170,24 +206,98 @@ function CoursesSection() {
         <h1 className="text-3xl font-bold text-white">Manage Courses</h1>
         <button className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg" onClick={handleAdd}>Add New Course</button>
       </div>
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-800 rounded-lg">
+        <div>
+          <label className="block text-slate-400 text-sm mb-1">Search</label>
+          <input
+            type="text"
+            name="search"
+            value={filters.search}
+            onChange={handleFilterChange}
+            placeholder="Search courses..."
+            className="w-full p-2 rounded bg-slate-700 text-white text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-slate-400 text-sm mb-1">Status</label>
+          <select
+            name="status"
+            value={filters.status}
+            onChange={handleFilterChange}
+            className="w-full p-2 rounded bg-slate-700 text-white text-sm"
+          >
+            <option value="">All Statuses</option>
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-slate-400 text-sm mb-1">Category</label>
+          <select
+            name="category"
+            value={filters.category}
+            onChange={handleFilterChange}
+            className="w-full p-2 rounded bg-slate-700 text-white text-sm"
+          >
+            <option value="">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left text-slate-300">
           <thead className="text-xs text-slate-400 uppercase bg-slate-700">
             <tr>
               <th className="p-4">Title</th>
-              <th className="p-4">Level</th>
-              <th className="p-4">Description</th>
+              <th className="p-4">Status</th>
+              <th className="p-4">Difficulty</th>
+              <th className="p-4">Category</th>
+              <th className="p-4">Students</th>
+              <th className="p-4">Price</th>
+              <th className="p-4">Featured</th>
               <th className="p-4">Type</th>
               <th className="p-4">Image</th>
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {courses.map(course => (
+            {getFilteredCourses().map(course => (
               <tr key={course.id} className="border-b border-slate-700 hover:bg-slate-700/50">
-                <td className="p-4">{course.title}</td>
-                <td className="p-4 capitalize">{course.level || '—'}</td>
-                <td className="p-4 max-w-xs truncate" title={course.description}>{course.description || '—'}</td>
+                <td className="p-4">
+                  <div>
+                    <div className="font-medium text-white">{course.title}</div>
+                    <div className="text-slate-400 text-xs truncate max-w-xs" title={course.description}>
+                      {course.description || '—'}
+                    </div>
+                  </div>
+                </td>
+                <td className="p-4">
+                  <span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${
+                    course.status === 'published' ? 'bg-green-200 text-green-800' :
+                    course.status === 'draft' ? 'bg-yellow-200 text-yellow-800' :
+                    'bg-gray-200 text-gray-800'
+                  }`}>
+                    {course.status || 'Draft'}
+                  </span>
+                </td>
+                <td className="p-4 capitalize">{course.difficulty || course.level || '—'}</td>
+                <td className="p-4">{course.category?.name || '—'}</td>
+                <td className="p-4">{course.enrollmentCount || 0}</td>
+                <td className="p-4">
+                  {course.isOwned ? 
+                    (course.price > 0 ? `${course.currency || 'USD'} ${course.price}` : 'Free') : 
+                    'External'
+                  }
+                </td>
+                <td className="p-4">
+                  {course.featured && <span className="text-yellow-400">⭐</span>}
+                </td>
                 <td className="p-4">
                   <span
                     className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full 
@@ -297,18 +407,60 @@ function CourseModal({ course, onClose, onSave }) {
     title: course?.title || '',
     provider: course?.provider || '',
     description: course?.description || '',
-    featuredImage: course?.featuredImage || '', // Will store the URL after upload
+    featuredImage: course?.featuredImage || '',
     isOwned: course?.isOwned || false,
     affiliateLink: course?.affiliateLink || '',
-    review: course?.review || ''
+    review: course?.review || '',
+    price: course?.price || 0,
+    currency: course?.currency || 'USD',
+    duration: course?.duration || '',
+    lessonCount: course?.lessonCount || 0,
+    videoCount: course?.videoCount || 0,
+    status: course?.status || 'draft',
+    categoryId: course?.categoryId || null,
+    difficulty: course?.difficulty || 'beginner',
+    prerequisites: course?.prerequisites || [],
+    learningOutcomes: course?.learningOutcomes || [],
+    tags: course?.tags || [],
+    featured: course?.featured || false
   });
+  
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(course?.featuredImage || '');
   const [step, setStep] = useState(course ? 1 : 0);
+  const [categories, setCategories] = useState([]);
+  
+  // Fetch categories for dropdown
+  useEffect(() => {
+    axios.get('/api/categories')
+      .then(res => setCategories(res.data))
+      .catch(() => setCategories([]));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleArrayChange = (field, index, value) => {
+    setForm(f => ({
+      ...f,
+      [field]: f[field].map((item, i) => i === index ? value : item)
+    }));
+  };
+
+  const addArrayItem = (field) => {
+    setForm(f => ({
+      ...f,
+      [field]: [...f[field], '']
+    }));
+  };
+
+  const removeArrayItem = (field, index) => {
+    setForm(f => ({
+      ...f,
+      [field]: f[field].filter((_, i) => i !== index)
+    }));
   };
 
   const handleImageChange = (e) => {
@@ -321,13 +473,32 @@ function CourseModal({ course, onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prepare form data with proper data types
+    const processedForm = {
+      ...form,
+      // Convert categoryId to integer or null
+      categoryId: form.categoryId ? parseInt(form.categoryId) : null,
+      // Convert numeric fields to proper types
+      price: form.price ? parseFloat(form.price) : 0,
+      lessonCount: form.lessonCount ? parseInt(form.lessonCount) : 0,
+      videoCount: form.videoCount ? parseInt(form.videoCount) : 0,
+      // Ensure boolean fields are proper booleans
+      featured: Boolean(form.featured),
+      external: !form.isOwned
+    };
+    
     let formData;
     if (imageFile) {
       formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+      Object.entries(processedForm).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formData.append(key, value);
+        }
+      });
       formData.append('image', imageFile);
     } else {
-      formData = { ...form };
+      formData = processedForm;
     }
     onSave(formData);
   };
@@ -351,47 +522,183 @@ function CourseModal({ course, onClose, onSave }) {
   // Step 1: Show form
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div className="bg-slate-800 rounded-xl w-full max-w-4xl border border-slate-700 max-h-[90vh] overflow-y-auto">
         <form className="p-6" onSubmit={handleSubmit} encType="multipart/form-data">
           <h2 className="text-2xl font-bold text-white mb-6">{course ? 'Edit Course' : 'Add New Course'}</h2>
-          <div className="mb-4">
-            <label className="block text-slate-400 mb-1">Title</label>
-            <input type="text" name="title" value={form.title} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" required />
+          
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-slate-400 mb-1">Title *</label>
+              <input type="text" name="title" value={form.title} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" required />
+            </div>
+            <div>
+              <label className="block text-slate-400 mb-1">Status</label>
+              <select name="status" value={form.status} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
           </div>
+
           <div className="mb-4">
             <label className="block text-slate-400 mb-1">Description</label>
             <textarea name="description" value={form.description} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" rows={3} />
           </div>
-          <div className="mb-4">
-            <label className="block text-slate-400 mb-1">Level</label>
-            <select name="level" value={form.level || ''} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" required>
-              <option value="">Select level</option>
-              <option value="Beginner">Beginner</option>
-              <option value="Medium">Medium</option>
-              <option value="Advanced">Advanced</option>
-            </select>
+
+          {/* Course Details */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-slate-400 mb-1">Difficulty</label>
+              <select name="difficulty" value={form.difficulty} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="expert">Expert</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-slate-400 mb-1">Duration</label>
+              <input type="text" name="duration" value={form.duration} onChange={handleChange} placeholder="e.g., 8 weeks, 20 hours" className="w-full p-2 rounded bg-slate-700 text-white" />
+            </div>
+            <div>
+              <label className="block text-slate-400 mb-1">Category</label>
+              <select name="categoryId" value={form.categoryId || ''} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white">
+                <option value="">Select Category</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="mb-4">
+
+          {/* Content Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-slate-400 mb-1">Lesson Count</label>
+              <input type="number" name="lessonCount" value={form.lessonCount} onChange={handleChange} min="0" className="w-full p-2 rounded bg-slate-700 text-white" />
+            </div>
+            <div>
+              <label className="block text-slate-400 mb-1">Video Count</label>
+              <input type="number" name="videoCount" value={form.videoCount} min="0" onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" />
+            </div>
+          </div>
+
+          {/* Pricing (for owned courses) */}
+          {form.isOwned && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-slate-400 mb-1">Price</label>
+                <input type="number" name="price" value={form.price} onChange={handleChange} min="0" step="0.01" className="w-full p-2 rounded bg-slate-700 text-white" />
+              </div>
+              <div>
+                <label className="block text-slate-400 mb-1">Currency</label>
+                <select name="currency" value={form.currency} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white">
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="CAD">CAD</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Learning Outcomes */}
+          <div className="mb-6">
+            <label className="block text-slate-400 mb-2">Learning Outcomes</label>
+            {form.learningOutcomes.map((outcome, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={outcome}
+                  onChange={(e) => handleArrayChange('learningOutcomes', index, e.target.value)}
+                  placeholder="What will students learn?"
+                  className="flex-1 p-2 rounded bg-slate-700 text-white"
+                />
+                <button type="button" onClick={() => removeArrayItem('learningOutcomes', index)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">Remove</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => addArrayItem('learningOutcomes')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">Add Learning Outcome</button>
+          </div>
+
+          {/* Prerequisites */}
+          <div className="mb-6">
+            <label className="block text-slate-400 mb-2">Prerequisites</label>
+            {form.prerequisites.map((prereq, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={prereq}
+                  onChange={(e) => handleArrayChange('prerequisites', index, e.target.value)}
+                  placeholder="Required knowledge or skills"
+                  className="flex-1 p-2 rounded bg-slate-700 text-white"
+                />
+                <button type="button" onClick={() => removeArrayItem('prerequisites', index)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">Remove</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => addArrayItem('prerequisites')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">Add Prerequisite</button>
+          </div>
+
+          {/* Tags */}
+          <div className="mb-6">
+            <label className="block text-slate-400 mb-2">Tags</label>
+            {form.tags.map((tag, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={tag}
+                  onChange={(e) => handleArrayChange('tags', index, e.target.value)}
+                  placeholder="Course tag"
+                  className="flex-1 p-2 rounded bg-slate-700 text-white"
+                />
+                <button type="button" onClick={() => removeArrayItem('tags', index)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">Remove</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => addArrayItem('tags')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">Add Tag</button>
+          </div>
+
+          {/* Course Image */}
+          <div className="mb-6">
             <label className="block text-slate-400 mb-1">Course Image</label>
             <input type="file" accept="image/*" onChange={handleImageChange} className="w-full p-2 rounded bg-slate-700 text-white" />
             {imagePreview && (
               <img src={imagePreview} alt="Preview" className="mt-2 h-20 w-32 object-cover rounded border border-slate-600" />
             )}
           </div>
-          {!form.isOwned && <>
-            <div className="mb-4">
-              <label className="block text-slate-400 mb-1">Provider</label>
-              <input type="text" name="provider" value={form.provider} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" />
-            </div>
-            <div className="mb-4">
-              <label className="block text-slate-400 mb-1">Affiliate Link</label>
-              <input type="text" name="affiliateLink" value={form.affiliateLink} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" />
-            </div>
-            <div className="mb-4">
-              <label className="block text-slate-400 mb-1">Review</label>
-              <textarea name="review" value={form.review} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" rows={2} />
-            </div>
-          </>}
+
+          {/* External Course Fields */}
+          {!form.isOwned && (
+            <>
+              <div className="mb-4">
+                <label className="block text-slate-400 mb-1">Provider</label>
+                <input type="text" name="provider" value={form.provider} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" />
+              </div>
+              <div className="mb-4">
+                <label className="block text-slate-400 mb-1">Affiliate Link</label>
+                <input type="text" name="affiliateLink" value={form.affiliateLink} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" />
+              </div>
+              <div className="mb-4">
+                <label className="block text-slate-400 mb-1">Review</label>
+                <textarea name="review" value={form.review} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white" rows={2} />
+              </div>
+            </>
+          )}
+
+          {/* Featured Checkbox */}
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-slate-400">
+              <input
+                type="checkbox"
+                name="featured"
+                checked={form.featured}
+                onChange={handleChange}
+                className="rounded"
+              />
+              Feature this course (show prominently)
+            </label>
+          </div>
+
           <div className="flex justify-end gap-4 mt-6">
             <button type="button" onClick={onClose} className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
             <button type="submit" className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg">{course ? 'Save Changes' : 'Add Course'}</button>

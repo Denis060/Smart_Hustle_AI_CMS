@@ -50,4 +50,53 @@ router.get('/unsubscribe/:token', async (req, res) => {
   }
 });
 
+// Add sample recent subscribers for testing analytics (admin only)
+router.post('/sample-recent', authenticateJWT, async (req, res) => {
+  try {
+    const sampleEmails = [
+      'john.doe@example.com',
+      'sarah.smith@gmail.com', 
+      'mike.johnson@yahoo.com',
+      'emma.wilson@outlook.com',
+      'alex.brown@protonmail.com'
+    ];
+    
+    const sampleNames = [
+      'John Doe',
+      'Sarah Smith',
+      'Mike Johnson', 
+      'Emma Wilson',
+      'Alex Brown'
+    ];
+
+    const subscribers = [];
+    const now = new Date();
+    
+    for (let i = 0; i < sampleEmails.length; i++) {
+      const createdAt = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000)); // Each subscriber from a different day
+      const unsubscribeToken = crypto.randomBytes(24).toString('hex');
+      
+      // Check if subscriber already exists
+      const existingSubscriber = await Subscriber.findOne({ where: { email: sampleEmails[i] } });
+      if (!existingSubscriber) {
+        const subscriber = await Subscriber.create({
+          email: sampleEmails[i],
+          name: sampleNames[i],
+          unsubscribeToken,
+          createdAt,
+          updatedAt: createdAt
+        });
+        subscribers.push(subscriber);
+      }
+    }
+    
+    res.json({ 
+      message: `Created ${subscribers.length} sample recent subscribers`, 
+      subscribers 
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 module.exports = router;
