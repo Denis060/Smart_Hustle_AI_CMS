@@ -116,7 +116,7 @@ export default function Homepage() {
               <div key={course.id} className="bg-slate-800 rounded-2xl p-6 border border-slate-700 hover:border-cyan-500/50 transition-all duration-300 hover:transform hover:scale-105 group">
                 <div className="relative mb-4">
                   <img 
-                    src={course.featuredImage || '/no-image.png'} 
+                    src={course.featuredImage ? (course.featuredImage.startsWith('http') ? course.featuredImage : `http://localhost:5000${course.featuredImage}`) : '/no-image.png'} 
                     alt={course.title} 
                     className="h-40 w-full object-cover rounded-lg" 
                   />

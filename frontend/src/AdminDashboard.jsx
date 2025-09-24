@@ -74,10 +74,15 @@ function CoursesSection() {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [filters, setFilters] = useState({ status: '', search: '', category: '' });
   const [categories, setCategories] = useState([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   // Filter courses based on current filters
@@ -97,7 +102,26 @@ function CoursesSection() {
     });
   };
 
-  const fetchCourses = () => {
+  // Get paginated courses
+  const getPaginatedCourses = () => {
+    const filteredCourses = getFilteredCourses();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCourses.slice(startIndex, endIndex);
+  };
+
+  // Calculate total pages
+  const getTotalPages = () => {
+    const filteredCourses = getFilteredCourses();
+    return Math.ceil(filteredCourses.length / itemsPerPage);
+  };
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const fetchCourses = useCallback(() => {
     const params = new URLSearchParams();
     if (filters.status) params.append('status', filters.status);
     if (filters.search) params.append('search', filters.search);
@@ -118,7 +142,7 @@ function CoursesSection() {
         console.error('Failed to fetch courses:', err);
         setCourses([]);
       });
-  };
+  }, [filters.status, filters.search, filters.category]);
 
   const fetchCategories = () => {
     axios.get('/api/categories')
@@ -129,7 +153,7 @@ function CoursesSection() {
   useEffect(() => {
     fetchCourses();
     fetchCategories();
-  }, [filters]);
+  }, [fetchCourses]);
 
   const handleAdd = () => {
     setEditingCourse(null);
@@ -137,6 +161,7 @@ function CoursesSection() {
   };
 
   const handleEdit = (course) => {
+    console.log('Editing course:', course);
     setEditingCourse(course);
     setIsModalOpen(true);
   };
@@ -169,10 +194,12 @@ function CoursesSection() {
       };
       if (editingCourse) {
         await axios.put(`/api/courses/${editingCourse.id}`, dataToSend, config);
+        alert('✅ Course updated successfully!');
         setIsModalOpen(false);
         fetchCourses();
       } else {
         const res = await axios.post('/api/courses', dataToSend, config);
+        alert('✅ Course created successfully!');
         setIsModalOpen(false);
         // Optimistically add the new course to the list if response contains it
         if (res.data && res.data.id) {
@@ -195,6 +222,7 @@ function CoursesSection() {
       const res = await axios.get(`/api/enrollments/course/${course.id}`);
       setStudentsList(res.data);
     } catch (err) {
+      console.error('Error viewing students:', err);
       setStudentsList([]);
     }
     setLoadingStudents(false);
@@ -256,7 +284,7 @@ function CoursesSection() {
             <tr>
               <th className="p-4">Title</th>
               <th className="p-4">Status</th>
-              <th className="p-4">Difficulty</th>
+              <th className="p-4">Level</th>
               <th className="p-4">Category</th>
               <th className="p-4">Students</th>
               <th className="p-4">Price</th>
@@ -267,7 +295,7 @@ function CoursesSection() {
             </tr>
           </thead>
           <tbody>
-            {getFilteredCourses().map(course => (
+            {getPaginatedCourses().map(course => (
               <tr key={course.id} className="border-b border-slate-700 hover:bg-slate-700/50">
                 <td className="p-4">
                   <div>
@@ -286,7 +314,7 @@ function CoursesSection() {
                     {course.status || 'Draft'}
                   </span>
                 </td>
-                <td className="p-4 capitalize">{course.difficulty || course.level || '—'}</td>
+                <td className="p-4 capitalize">{course.level || course.difficulty || '—'}</td>
                 <td className="p-4">{course.category?.name || '—'}</td>
                 <td className="p-4">{course.enrollmentCount || 0}</td>
                 <td className="p-4">
@@ -311,10 +339,11 @@ function CoursesSection() {
                     src={course.featuredImage
                       ? (course.featuredImage.startsWith('http')
                         ? course.featuredImage
-                        : `/api${course.featuredImage}`)
-                      : '/no-image.png'}
+                        : `http://localhost:5000${course.featuredImage}`)
+                      : '/no-image.svg'}
                     alt="Course"
                     className="h-10 w-16 object-cover rounded"
+                    onError={(e) => { e.target.src = '/no-image.svg'; }}
                   />
                 </td>
                 <td className="p-4 text-right flex gap-2 justify-end">
@@ -341,6 +370,60 @@ function CoursesSection() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {getTotalPages() > 1 && (
+        <div className="flex items-center justify-between mt-6 px-4">
+          <div className="text-slate-300 text-sm">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, getFilteredCourses().length)} of {getFilteredCourses().length} courses
+          </div>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 rounded ${
+                currentPage === 1 
+                  ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                  : 'bg-slate-700 text-white hover:bg-slate-600'
+              }`}
+            >
+              Previous
+            </button>
+            
+            {/* Page Numbers */}
+            {[...Array(getTotalPages())].map((_, index) => {
+              const page = index + 1;
+              const isCurrentPage = page === currentPage;
+              return (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-1 rounded ${
+                    isCurrentPage 
+                      ? 'bg-cyan-600 text-white' 
+                      : 'bg-slate-700 text-white hover:bg-slate-600'
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+            
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === getTotalPages()}
+              className={`px-3 py-1 rounded ${
+                currentPage === getTotalPages() 
+                  ? 'bg-slate-600 text-slate-400 cursor-not-allowed' 
+                  : 'bg-slate-700 text-white hover:bg-slate-600'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       {isModalOpen && <CourseModal course={editingCourse} onClose={() => setIsModalOpen(false)} onSave={handleModalSave} />}
       {enrollModalCourse && (
         <EnrollModal
@@ -403,6 +486,8 @@ function StudentsListModal({ course, students, loading, onClose }) {
 }
 
 function CourseModal({ course, onClose, onSave }) {
+  console.log('CourseModal rendered with course:', course);
+  
   const [form, setForm] = useState({
     title: course?.title || '',
     provider: course?.provider || '',
@@ -418,15 +503,19 @@ function CourseModal({ course, onClose, onSave }) {
     videoCount: course?.videoCount || 0,
     status: course?.status || 'draft',
     categoryId: course?.categoryId || null,
-    difficulty: course?.difficulty || 'beginner',
-    prerequisites: course?.prerequisites || [],
-    learningOutcomes: course?.learningOutcomes || [],
-    tags: course?.tags || [],
+    level: course?.level || course?.difficulty || 'beginner',
+    prerequisites: Array.isArray(course?.prerequisites) ? course.prerequisites : [],
+    learningOutcomes: Array.isArray(course?.learningOutcomes) ? course.learningOutcomes : [],
+    tags: Array.isArray(course?.tags) ? course.tags : [],
     featured: course?.featured || false
   });
   
   const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(course?.featuredImage || '');
+  const [imagePreview, setImagePreview] = useState(
+    course?.featuredImage ? 
+      (course.featuredImage.startsWith('http') ? course.featuredImage : `http://localhost:5000${course.featuredImage}`) 
+      : ''
+  );
   const [step, setStep] = useState(course ? 1 : 0);
   const [categories, setCategories] = useState([]);
   
@@ -477,15 +566,19 @@ function CourseModal({ course, onClose, onSave }) {
     // Prepare form data with proper data types
     const processedForm = {
       ...form,
-      // Convert categoryId to integer or null
-      categoryId: form.categoryId ? parseInt(form.categoryId) : null,
+      // Convert categoryId to integer or null - handle empty string and invalid values
+      categoryId: (form.categoryId && form.categoryId !== '') ? parseInt(form.categoryId) : null,
       // Convert numeric fields to proper types
       price: form.price ? parseFloat(form.price) : 0,
       lessonCount: form.lessonCount ? parseInt(form.lessonCount) : 0,
       videoCount: form.videoCount ? parseInt(form.videoCount) : 0,
       // Ensure boolean fields are proper booleans
       featured: Boolean(form.featured),
-      external: !form.isOwned
+      external: !form.isOwned,
+      // Convert arrays to JSON strings for FormData
+      prerequisites: JSON.stringify(form.prerequisites || []),
+      learningOutcomes: JSON.stringify(form.learningOutcomes || []),
+      tags: JSON.stringify(form.tags || [])
     };
     
     let formData;
@@ -550,12 +643,11 @@ function CourseModal({ course, onClose, onSave }) {
           {/* Course Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="block text-slate-400 mb-1">Difficulty</label>
-              <select name="difficulty" value={form.difficulty} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white">
+              <label className="block text-slate-400 mb-1">Level</label>
+              <select name="level" value={form.level} onChange={handleChange} className="w-full p-2 rounded bg-slate-700 text-white">
                 <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
+                <option value="medium">Medium</option>
                 <option value="advanced">Advanced</option>
-                <option value="expert">Expert</option>
               </select>
             </div>
             <div>
@@ -709,7 +801,7 @@ function CourseModal({ course, onClose, onSave }) {
   );
 }
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminCompose from './AdminCompose';
 import AdminSubscribers from './AdminSubscribers';
 import AdminCampaigns from './AdminCampaigns';
@@ -773,7 +865,7 @@ function PostsSection() {
                     src={post.featuredImage
                       ? (post.featuredImage.startsWith('http')
                         ? post.featuredImage
-                        : `/api/${post.featuredImage}`)
+                        : `http://localhost:5000${post.featuredImage}`)
                       : '/no-image.png'}
                     alt="Post"
                     className="h-10 w-16 object-cover rounded"

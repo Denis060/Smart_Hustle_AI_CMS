@@ -71,7 +71,7 @@ function PublicCourses() {
           >
             <div className="relative mb-4">
               <img 
-                src={course.featuredImage ? (course.featuredImage.startsWith('http') ? course.featuredImage : `/api${course.featuredImage}`) : '/no-image.png'} 
+                src={course.featuredImage ? (course.featuredImage.startsWith('http') ? course.featuredImage : `http://localhost:5000${course.featuredImage}`) : '/no-image.png'} 
                 alt="Course" 
                 className="h-32 w-full object-cover rounded" 
               />
@@ -167,7 +167,7 @@ function CourseDetailModal({ course, onClose, onEnroll }) {
         
         <div className="relative mb-6">
           <img 
-            src={course.featuredImage ? (course.featuredImage.startsWith('http') ? course.featuredImage : `/api${course.featuredImage}`) : '/no-image.png'} 
+            src={course.featuredImage ? (course.featuredImage.startsWith('http') ? course.featuredImage : `http://localhost:5000${course.featuredImage}`) : '/no-image.png'} 
             alt="Course" 
             className="h-48 w-full object-cover rounded" 
           />

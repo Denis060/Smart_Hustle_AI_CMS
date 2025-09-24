@@ -1,0 +1,5 @@
+<!-- Simple test image placeholder -->
+<svg width="200" height="120" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="120" fill="#3B82F6"/>
+  <text x="100" y="60" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">Test Course Image</text>
+</svg>

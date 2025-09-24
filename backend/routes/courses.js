@@ -108,7 +108,7 @@ router.post('/', authenticateJWT, upload.single('image'), async (req, res) => {
       affiliateLink,
       review,
       provider,
-      level: level ? level.toLowerCase() : null,
+      level: level || 'beginner',
       price: price ? parseFloat(price) : 0.00,
       currency: currency || 'USD',
       duration,
@@ -116,7 +116,7 @@ router.post('/', authenticateJWT, upload.single('image'), async (req, res) => {
       videoCount: videoCount ? parseInt(videoCount) : 0,
       status: status || 'draft',
       categoryId: categoryId ? parseInt(categoryId) : null,
-      difficulty: difficulty || 'beginner',
+      difficulty: difficulty || level || 'beginner',
       prerequisites: parseJsonField(prerequisites),
       learningOutcomes: parseJsonField(learningOutcomes),
       tags: parseJsonField(tags),
@@ -158,9 +158,23 @@ router.put('/:id', authenticateJWT, upload.single('image'), async (req, res) => 
           updateFields[field] = req.body[field] ? parseFloat(req.body[field]) : 0;
         } else if (['lessonCount', 'videoCount'].includes(field)) {
           updateFields[field] = req.body[field] ? parseInt(req.body[field]) : 0;
+        } else if (field === 'level') {
+          // Handle level field - ensure it's valid
+          const levelValue = req.body[field];
+          if (['beginner', 'medium', 'advanced'].includes(levelValue)) {
+            updateFields[field] = levelValue;
+          } else {
+            updateFields[field] = 'beginner'; // Default fallback
+          }
         } else if (field === 'categoryId') {
           // Handle categoryId specially - empty string should become null
-          updateFields[field] = req.body[field] && req.body[field] !== '' ? parseInt(req.body[field]) : null;
+          const catId = req.body[field] && req.body[field] !== '' ? parseInt(req.body[field]) : null;
+          // Validate that category exists if provided
+          if (catId && !isNaN(catId)) {
+            updateFields[field] = catId;
+          } else {
+            updateFields[field] = null;
+          }
         } else if (['prerequisites', 'learningOutcomes', 'tags'].includes(field)) {
           // Parse JSON fields if they're strings
           const parseJsonField = (value) => {
@@ -187,6 +201,7 @@ router.put('/:id', authenticateJWT, upload.single('image'), async (req, res) => 
     }
     if (featuredImage) updateFields.featuredImage = featuredImage;
     
+    console.log('Updating course with fields:', updateFields);
     await course.update(updateFields);
     const courseObj = course.toJSON();
     courseObj.isOwned = !courseObj.external;

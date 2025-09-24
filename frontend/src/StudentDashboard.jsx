@@ -166,7 +166,7 @@ export default function StudentDashboard() {
               <div key={course.id} className="bg-slate-700 rounded-xl p-6 border border-slate-600 hover:border-slate-500 transition-colors">
                 <div className="relative mb-4">
                   <img 
-                    src={course.featuredImage ? (course.featuredImage.startsWith('http') ? course.featuredImage : `/api${course.featuredImage}`) : '/no-image.png'} 
+                    src={course.featuredImage ? (course.featuredImage.startsWith('http') ? course.featuredImage : `http://localhost:5000${course.featuredImage}`) : '/no-image.png'} 
                     alt={course.title} 
                     className="h-32 w-full object-cover rounded" 
                   />
