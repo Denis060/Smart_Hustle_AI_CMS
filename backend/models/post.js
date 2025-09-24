@@ -26,7 +26,21 @@ module.exports = (sequelize, DataTypes) => {
     featuredImage: DataTypes.STRING,
     categoryId: DataTypes.INTEGER,
     authorId: DataTypes.INTEGER,
-    published: DataTypes.BOOLEAN
+    published: DataTypes.BOOLEAN,
+    // SEO fields (matching existing database schema)
+    slug: {
+      type: DataTypes.STRING,
+      unique: true
+    },
+    excerpt: DataTypes.TEXT,
+    metaDescription: DataTypes.STRING(160),
+    metaKeywords: DataTypes.STRING,
+    readingTime: DataTypes.INTEGER,
+    scheduledAt: DataTypes.DATE,
+    views: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    }
   }, {
     sequelize,
     modelName: 'Post',

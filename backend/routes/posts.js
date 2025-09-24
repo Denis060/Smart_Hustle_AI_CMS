@@ -46,20 +46,58 @@ router.get('/:id', async (req, res) => {
 // Create post (admin only)
 router.post('/', authenticateJWT, async (req, res) => {
   try {
-    const { title, content, featuredImage, categoryId, published, tagIds } = req.body;
+    console.log('Creating post with data:', req.body);
+    
+    const { 
+      title, 
+      content, 
+      featuredImage, 
+      categoryId, 
+      published, 
+      tagIds,
+      // SEO fields
+      slug,
+      metaDescription,
+      metaKeywords,
+      excerpt,
+      scheduledAt
+    } = req.body;
+    
+    // Calculate reading time based on word count
+    const text = content ? content.replace(/<[^>]*>/g, '') : '';
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const readingTime = Math.ceil(words / 200); // 200 words per minute
+    
+    console.log('Post data processed:', { title, readingTime, authorId: req.user.id });
+    
     const post = await Post.create({
       title,
       content,
       featuredImage,
       categoryId,
       authorId: req.user.id,
-      published: !!published
+      published: !!published,
+      // SEO fields
+      slug,
+      metaDescription,
+      metaKeywords,
+      excerpt,
+      readingTime,
+      // Only include scheduledAt if it's a valid date
+      ...(scheduledAt && !isNaN(Date.parse(scheduledAt)) ? { scheduledAt } : {}),
+      views: 0
     });
+    
+    console.log('Post created successfully:', post.id);
+    
     if (Array.isArray(tagIds)) {
       await post.setTags(tagIds);
+      console.log('Tags set for post:', tagIds);
     }
+    
     res.status(201).json(post);
   } catch (err) {
+    console.error('Post creation error:', err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -69,8 +107,25 @@ router.put('/:id', authenticateJWT, async (req, res) => {
   try {
     const post = await Post.findByPk(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
-    const { tagIds, ...updateFields } = req.body;
+    
+    const { tagIds, content, ...otherFields } = req.body;
+    
+    // Recalculate reading time if content changed
+    let readingTime = post.readingTime;
+    if (content !== undefined) {
+      const text = content ? content.replace(/<[^>]*>/g, '') : '';
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      readingTime = Math.ceil(words / 200);
+    }
+    
+    const updateFields = {
+      ...otherFields,
+      ...(content !== undefined && { content }),
+      ...(readingTime !== post.readingTime && { readingTime })
+    };
+    
     await post.update(updateFields);
+    
     if (Array.isArray(tagIds)) {
       await post.setTags(tagIds);
     }

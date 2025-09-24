@@ -154,5 +154,41 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  // Auto-publish scheduled posts
+const { Post } = require('./models');
+const { Op } = require('sequelize');
+
+const checkScheduledPosts = async () => {
+  try {
+    const now = new Date();
+    const scheduledPosts = await Post.findAll({
+      where: {
+        scheduledAt: {
+          [Op.lte]: now
+        },
+        published: false
+      }
+    });
+
+    if (scheduledPosts.length > 0) {
+      console.log(`Publishing ${scheduledPosts.length} scheduled posts...`);
+      
+      for (const post of scheduledPosts) {
+        await post.update({ 
+          published: true,
+          scheduledAt: null // Clear schedule after publishing
+        });
+        console.log(`📰 Published scheduled post: "${post.title}"`);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking scheduled posts:', error);
+  }
+};
+
+// Check for scheduled posts every minute
+setInterval(checkScheduledPosts, 60000);
+console.log('📅 Post scheduler started - checking every minute for scheduled posts');
+
+console.log('Server running on port', PORT);
 });

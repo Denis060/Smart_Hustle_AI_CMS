@@ -848,18 +848,39 @@ function PostsSection() {
             <tr>
               <th className="p-4">Title</th>
               <th className="p-4">Author</th>
-              <th className="p-4">Published</th>
+              <th className="p-4">Stats</th>
               <th className="p-4">Image</th>
               <th className="p-4">Status</th>
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {posts.map(post => (
+            {posts.map(post => {
+              const isScheduled = post.scheduledAt && new Date(post.scheduledAt) > new Date();
+              const scheduledDate = post.scheduledAt ? new Date(post.scheduledAt) : null;
+              
+              return (
               <tr key={post.id} className="border-b border-slate-700 hover:bg-slate-700/50">
-                <td className="p-4">{post.title}</td>
+                <td className="p-4">
+                  <div>
+                    <div className="font-semibold text-white">{post.title}</div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      {post.slug && (
+                        <span className="bg-slate-700 px-2 py-1 rounded mr-2">/{post.slug}</span>
+                      )}
+                      {post.metaDescription && (
+                        <span className="text-slate-400">📝 SEO Ready</span>
+                      )}
+                    </div>
+                  </div>
+                </td>
                 <td className="p-4">{post.User ? post.User.name || post.User.username : post.authorId || '—'}</td>
-                <td className="p-4">{post.publishedAt || post.createdAt?.slice(0, 10) || ''}</td>
+                <td className="p-4">
+                  <div className="text-xs text-slate-400">
+                    <div>{post.readingTime || 0} min read</div>
+                    <div>{post.views || 0} views</div>
+                  </div>
+                </td>
                 <td className="p-4">
                   <img
                     src={post.featuredImage
@@ -871,13 +892,38 @@ function PostsSection() {
                     className="h-10 w-16 object-cover rounded"
                   />
                 </td>
-                <td className="p-4"><span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${post.published ? 'text-emerald-600 bg-emerald-200' : 'text-slate-500 bg-slate-700'}`}>{post.published ? 'Published' : 'Draft'}</span></td>
+                <td className="p-4">
+                  <div className="flex flex-col space-y-1">
+                    {isScheduled ? (
+                      <>
+                        <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-yellow-600 bg-yellow-200">
+                          ⏰ Scheduled
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                      </>
+                    ) : (
+                      <span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${
+                        post.published 
+                          ? 'text-emerald-600 bg-emerald-200' 
+                          : 'text-slate-500 bg-slate-700'
+                      }`}>
+                        {post.published ? '✅ Published' : '📝 Draft'}
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-500">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </td>
                 <td className="p-4 text-right flex gap-2 justify-end">
                   <button className="text-slate-400 hover:text-white" onClick={() => navigate(`/admin/posts/edit/${post.id}`)}>Edit</button>
                   <button className="text-red-400 hover:text-red-600" onClick={() => handleDelete(post.id)}>Delete</button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

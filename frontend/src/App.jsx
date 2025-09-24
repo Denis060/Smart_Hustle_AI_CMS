@@ -54,7 +54,7 @@ function Posts() {
         if (data.categories) {
           setCategories(data.categories);
         } else {
-          const cats = Array.from(new Set((data.posts || []).map(p => p.category).filter(Boolean)));
+          const cats = Array.from(new Set((data.posts || []).map(p => p.category?.name).filter(Boolean)));
           setCategories(cats);
         }
       })
@@ -62,104 +62,396 @@ function Posts() {
       .finally(() => setLoading(false));
   }, [search, category, page]);
 
-  // Simulate recommended articles (top 3 by createdAt)
-  const recommended = [...posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3);
+  // Get featured posts (latest posts) for recommendations
+  const recommended = [...posts].slice(0, 3);
 
   return (
-    <section className="py-16 min-h-[70vh] flex flex-col items-center justify-center w-full">
-      <h1 className="text-5xl font-extrabold text-center mb-4">The AI Hustle Posts</h1>
-      <p className="text-lg text-slate-300 text-center mb-8 max-w-2xl">Insights on Machine Learning, AI, and Data Science Projects.</p>
-      <div className="flex flex-col md:flex-row gap-8 w-full max-w-7xl">
-        {/* Left: Recommended */}
-        <aside className="w-full md:w-1/4 flex flex-col gap-4">
-          <div className="bg-slate-800 rounded-xl p-4 mb-4">
-            <h2 className="text-lg font-bold text-cyan-400 mb-2">Recommended</h2>
-            {recommended.length === 0 ? <div className="text-slate-400">No recommendations yet.</div> : recommended.map(post => (
-              <div key={post.id} className="mb-3">
-                <Link to={`/posts/${post.id}`} className="text-cyan-300 hover:underline font-semibold">{post.title}</Link>
-                <div className="text-xs text-slate-400">{post.category?.name || 'Post'}</div>
-              </div>
-            ))}
+    <section className="py-16 min-h-[70vh] flex flex-col items-center justify-center w-full bg-gradient-to-b from-slate-900 to-slate-800">
+      {/* Hero Section */}
+      <div className="text-center mb-12 max-w-4xl mx-auto">
+        <h1 className="text-5xl font-extrabold text-center mb-6 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+          Smart Hustle AI Blog
+        </h1>
+        <p className="text-xl text-slate-300 text-center mb-8 leading-relaxed">
+          Master AI, Data Science & Modern Business with Expert Insights and Practical Guides
+        </p>
+        <div className="flex justify-center items-center gap-4 text-sm text-slate-400">
+          <span className="flex items-center gap-1">
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Weekly Updates
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+            </svg>
+            Expert Authors
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+            </svg>
+            {posts.length} Articles
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-8 w-full max-w-7xl px-4">
+        {/* Left Sidebar: Categories & Newsletter */}
+        <aside className="w-full lg:w-1/4 flex flex-col gap-6">
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 shadow-xl">
+            <h2 className="text-xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+              </svg>
+              Categories
+            </h2>
+            <div className="space-y-2">
+              <button 
+                onClick={() => { setCategory(""); setPage(1); }} 
+                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${!category ? 'bg-cyan-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-700/50'}`}
+              >
+                All Posts
+              </button>
+              {categories.map(cat => (
+                <button 
+                  key={cat} 
+                  onClick={() => { setCategory(cat); setPage(1); }}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${category === cat ? 'bg-cyan-500 text-white font-semibold' : 'text-slate-300 hover:bg-slate-700/50'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 shadow-xl">
+            <h2 className="text-xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+              </svg>
+              Newsletter
+            </h2>
+            <p className="text-slate-400 text-sm mb-4">
+              Get the latest AI insights delivered to your inbox
+            </p>
+            <form className="flex flex-col gap-3">
+              <input 
+                type="email" 
+                placeholder="your@email.com" 
+                className="rounded-lg bg-slate-900/50 border border-slate-600 px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent" 
+              />
+              <button 
+                type="submit" 
+                className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 font-bold text-white hover:from-cyan-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
+              >
+                Subscribe Now
+              </button>
+            </form>
+          </div>
+
+          {recommended.length > 0 && (
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 shadow-xl">
+              <h2 className="text-xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                </svg>
+                Featured Posts
+              </h2>
+              <div className="space-y-4">
+                {recommended.map(post => (
+                  <div key={post.id} className="group">
+                    <Link to={`/posts/${post.id}`} className="block">
+                      <h3 className="text-white font-semibold text-sm group-hover:text-cyan-300 transition-colors mb-1 line-clamp-2">
+                        {post.title}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        {post.category?.name && (
+                          <span className="bg-slate-700 px-2 py-1 rounded-full text-cyan-300">
+                            {post.category.name}
+                          </span>
+                        )}
+                        {post.readingTime && (
+                          <span>{post.readingTime} min read</span>
+                        )}
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </aside>
         {/* Center: Main Feed */}
-        <main className="w-full md:w-2/4 flex flex-col gap-6">
-          <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-            <input
-              type="text"
-              placeholder="Search posts..."
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-full md:w-72 rounded bg-slate-800 px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-            />
-            <select
-              className="rounded bg-slate-800 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
-              value={category}
-              onChange={e => { setCategory(e.target.value); setPage(1); }}
-            >
-              <option value="">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+        <main className="w-full lg:w-3/4 flex flex-col gap-8">
+          {/* Search and Filters */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 shadow-xl">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Search articles..."
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(1); }}
+                  className="w-full rounded-lg bg-slate-900/50 border border-slate-600 px-4 py-3 pl-10 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                />
+                <svg className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/>
+                </svg>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-slate-400 text-sm whitespace-nowrap">
+                  {posts.length > 0 && `${posts.length} articles found`}
+                </span>
+              </div>
+            </div>
           </div>
+
           {loading ? (
-            <div className="text-slate-400 text-lg">Loading posts...</div>
+            <div className="text-center py-16">
+              <div className="inline-flex items-center gap-3 text-slate-400 text-lg">
+                <svg className="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                Loading articles...
+              </div>
+            </div>
           ) : posts.length === 0 ? (
-            <div className="text-slate-400 text-lg">No posts found.</div>
+            <div className="text-center py-16">
+              <div className="text-slate-400 text-xl mb-4">No articles found</div>
+              <p className="text-slate-500">Try adjusting your search or browse all categories</p>
+            </div>
           ) : (
-            <div className="flex flex-col gap-8">
-              {posts.map(post => (
-                <div key={post.id} className="bg-slate-800 rounded-2xl shadow p-0 flex flex-col border border-slate-700 transition-transform duration-200 hover:scale-[1.01] hover:shadow-2xl cursor-pointer overflow-hidden" onClick={() => navigate(`/posts/${post.id}`)}>
-                  {post.featuredImage && (
-                    <img src={post.featuredImage} alt="Post" className="w-full h-48 object-cover" />
-                  )}
-                  <div className="p-6 flex flex-col gap-2">
-                    <h2 className="text-2xl font-bold text-white mb-1">{post.title}</h2>
-                    <p className="text-slate-400 text-sm mb-1 flex gap-2 items-center">
-                      <span>By <span className="font-semibold text-cyan-300">Ibrahim Denis Fofanah</span></span>
-                      {post.createdAt && <span className="ml-2">{new Date(post.createdAt).toLocaleDateString()}</span>}
-                      {post.category?.name && <span className="ml-2 px-2 py-1 bg-slate-700 rounded text-xs text-cyan-300">{post.category.name}</span>}
-                    </p>
-                    <div className="prose prose-invert max-w-none text-slate-300 mb-2 line-clamp-4" dangerouslySetInnerHTML={{ __html: post.excerpt || (post.content?.slice(0, 300) + '...') }} />
-                    <div className="flex gap-4 mt-2">
-                      <button className="px-3 py-1 rounded bg-cyan-500 text-slate-900 font-bold hover:bg-cyan-400 transition text-sm">Like</button>
-                      <button className="px-3 py-1 rounded bg-slate-700 text-white font-bold hover:bg-slate-600 transition text-sm">Comment</button>
-                      <button className="px-3 py-1 rounded bg-indigo-500 text-white font-bold hover:bg-indigo-400 transition text-sm">Share</button>
+            <div className="grid gap-8">
+              {posts.map((post, index) => (
+                <article 
+                  key={post.id} 
+                  className={`group cursor-pointer transition-all duration-300 hover:transform hover:scale-[1.02] ${
+                    index === 0 ? 'lg:grid lg:grid-cols-2 lg:gap-8' : ''
+                  }`}
+                  onClick={() => navigate(`/posts/${post.id}`)}
+                >
+                  <div className={`bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-xl hover:shadow-2xl overflow-hidden ${
+                    index === 0 ? 'lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-0' : ''
+                  }`}>
+                    {/* Featured Image */}
+                    {post.featuredImage && (
+                      <div className={`relative overflow-hidden ${index === 0 ? 'lg:order-2' : 'h-48'}`}>
+                        <img 
+                          src={post.featuredImage.startsWith('http') 
+                            ? post.featuredImage 
+                            : `http://localhost:5000${post.featuredImage}`
+                          } 
+                          alt={post.title}
+                          className={`w-full object-cover transition-transform duration-300 group-hover:scale-110 ${
+                            index === 0 ? 'h-full' : 'h-48'
+                          }`}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
+                      </div>
+                    )}
+                    
+                    {/* Content */}
+                    <div className={`p-8 flex flex-col justify-between ${index === 0 ? 'lg:order-1' : ''}`}>
+                      {/* Category & Reading Time */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          {post.category?.name && (
+                            <span className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                              {post.category.name}
+                            </span>
+                          )}
+                          {post.readingTime && (
+                            <span className="text-slate-400 text-sm flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                              </svg>
+                              {post.readingTime} min read
+                            </span>
+                          )}
+                        </div>
+                        {post.views && (
+                          <span className="text-slate-400 text-sm flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                            {post.views} views
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Title & Content */}
+                      <div className="flex-1">
+                        <h2 className={`font-bold text-white mb-4 group-hover:text-cyan-300 transition-colors line-clamp-2 ${
+                          index === 0 ? 'text-3xl' : 'text-xl'
+                        }`}>
+                          {post.title}
+                        </h2>
+                        
+                        <div className="prose prose-invert prose-sm max-w-none text-slate-300 mb-6 line-clamp-3" 
+                             dangerouslySetInnerHTML={{ 
+                               __html: post.excerpt || (post.content?.replace(/<[^>]*>/g, '').slice(0, 200) + '...') 
+                             }} 
+                        />
+                      </div>
+
+                      {/* Author & Date */}
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {post.User?.name ? post.User.name.charAt(0).toUpperCase() : 'A'}
+                          </div>
+                          <div>
+                            <div className="text-white font-semibold text-sm">
+                              {post.User?.name || 'Ibrahim Denis Fofanah'}
+                            </div>
+                            {post.createdAt && (
+                              <div className="text-slate-400 text-xs">
+                                {new Date(post.createdAt).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long', 
+                                  day: 'numeric'
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); }}
+                            className="p-2 rounded-full bg-slate-700/50 text-slate-400 hover:bg-cyan-500/20 hover:text-cyan-400 transition-colors"
+                            title="Like"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                            </svg>
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); }}
+                            className="p-2 rounded-full bg-slate-700/50 text-slate-400 hover:bg-blue-500/20 hover:text-blue-400 transition-colors"
+                            title="Share"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
-          {/* Pagination controls */}
-          <div className="mt-10 flex gap-2">
-            <button
-              className="px-4 py-2 rounded bg-slate-800 text-white disabled:opacity-50"
-              disabled={page === 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-            >Prev</button>
-            <span className="px-3 py-2 text-slate-400">Page {page} of {totalPages}</span>
-            <button
-              className="px-4 py-2 rounded bg-slate-800 text-white disabled:opacity-50"
-              disabled={page === totalPages}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            >Next</button>
+          {/* Enhanced Pagination */}
+          <div className="flex items-center justify-center mt-12">
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700/50 shadow-xl">
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-4 py-2 rounded-lg bg-slate-700/50 text-white disabled:opacity-50 hover:bg-slate-600 transition-colors flex items-center gap-2"
+                  disabled={page === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
+                  </svg>
+                  Previous
+                </button>
+                
+                <div className="flex items-center gap-1 mx-4">
+                  {Array.from({length: Math.min(5, totalPages)}, (_, i) => {
+                    const pageNum = i + 1;
+                    const isActive = pageNum === page;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
+                          isActive 
+                            ? 'bg-cyan-500 text-white' 
+                            : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && (
+                    <>
+                      <span className="text-slate-400 mx-2">...</span>
+                      <button
+                        onClick={() => setPage(totalPages)}
+                        className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
+                          totalPages === page 
+                            ? 'bg-cyan-500 text-white' 
+                            : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  className="px-4 py-2 rounded-lg bg-slate-700/50 text-white disabled:opacity-50 hover:bg-slate-600 transition-colors flex items-center gap-2"
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="text-center mt-3 text-sm text-slate-400">
+                Page {page} of {totalPages} • {posts.length} articles
+              </div>
+            </div>
           </div>
         </main>
-        {/* Right: Sidebar */}
-        <aside className="w-full md:w-1/4 flex flex-col gap-4">
-          <div className="bg-slate-800 rounded-xl p-4 mb-4">
-            <h2 className="text-lg font-bold text-cyan-400 mb-2">Subscribe</h2>
-            <form className="flex flex-col gap-2">
-              <input type="email" placeholder="Your email" className="rounded bg-slate-900 px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
-              <button type="submit" className="rounded bg-cyan-500 px-4 py-2 font-bold text-slate-900 hover:bg-cyan-400 transition">Subscribe</button>
-            </form>
-          </div>
-          <div className="bg-slate-800 rounded-xl p-4">
-            <h2 className="text-lg font-bold text-cyan-400 mb-2">Share</h2>
-            <div className="flex gap-2">
-              <button className="rounded bg-indigo-500 px-3 py-2 text-white font-bold hover:bg-indigo-400 transition">Share</button>
+        
+        {/* Right Sidebar - Hidden on mobile */}
+        <aside className="hidden lg:block w-1/4">
+          <div className="sticky top-8 space-y-6">
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 shadow-xl">
+              <h2 className="text-xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+                </svg>
+                Quick Links
+              </h2>
+              <div className="space-y-3">
+                <Link to="/courses" className="block text-slate-300 hover:text-cyan-300 transition-colors">
+                  📚 Browse Courses
+                </Link>
+                <Link to="/about" className="block text-slate-300 hover:text-cyan-300 transition-colors">
+                  ℹ️ About Us
+                </Link>
+                <Link to="/dashboard" className="block text-slate-300 hover:text-cyan-300 transition-colors">
+                  📊 Dashboard
+                </Link>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 shadow-xl">
+              <h2 className="text-xl font-bold text-cyan-400 mb-4">Share Blog</h2>
+              <div className="flex gap-3">
+                <button className="flex-1 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors">
+                  Twitter
+                </button>
+                <button className="flex-1 py-2 px-3 rounded-lg bg-blue-800 hover:bg-blue-900 text-white text-sm font-semibold transition-colors">
+                  LinkedIn
+                </button>
+              </div>
             </div>
           </div>
         </aside>
