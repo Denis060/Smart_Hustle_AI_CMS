@@ -34,6 +34,10 @@ function Posts() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [categories, setCategories] = useState([]);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterName, setNewsletterName] = useState('');
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [newsletterMessage, setNewsletterMessage] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +68,44 @@ function Posts() {
 
   // Get featured posts (latest posts) for recommendations
   const recommended = [...posts].slice(0, 3);
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+    setNewsletterSubmitting(true);
+    setNewsletterMessage('');
+    
+    try {
+      const response = await fetch('/api/subscribers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: newsletterEmail, 
+          name: newsletterName || null 
+        })
+      });
+      
+      if (response.ok) {
+        setNewsletterMessage('🎉 Successfully subscribed! Welcome to Smart Hustle AI!');
+        setNewsletterEmail('');
+        setNewsletterName('');
+      } else {
+        const error = await response.json();
+        if (error.error && error.error.includes('email must be unique')) {
+          setNewsletterMessage('✅ You are already subscribed to our newsletter!');
+        } else {
+          setNewsletterMessage('❌ ' + (error.error || 'Subscription failed. Please try again.'));
+        }
+      }
+    } catch (err) {
+      console.error('Newsletter subscription error:', err);
+      setNewsletterMessage('❌ Network error. Please check your connection and try again.');
+    }
+    
+    setNewsletterSubmitting(false);
+    
+    // Clear message after 5 seconds
+    setTimeout(() => setNewsletterMessage(''), 5000);
+  };
 
   return (
     <section className="py-16 min-h-[70vh] flex flex-col items-center justify-center w-full bg-gradient-to-b from-slate-900 to-slate-800">
@@ -137,17 +179,49 @@ function Posts() {
             <p className="text-slate-400 text-sm mb-4">
               Get the latest AI insights delivered to your inbox
             </p>
-            <form className="flex flex-col gap-3">
+            
+            {newsletterMessage && (
+              <div className={`mb-4 p-3 rounded-lg text-sm ${
+                newsletterMessage.includes('🎉') || newsletterMessage.includes('✅')
+                  ? 'bg-green-500/20 border border-green-500/50 text-green-300'
+                  : 'bg-red-500/20 border border-red-500/50 text-red-300'
+              }`}>
+                {newsletterMessage}
+              </div>
+            )}
+            
+            <form onSubmit={handleNewsletterSubmit} className="flex flex-col gap-3">
+              <input 
+                type="text"
+                placeholder="Your name (optional)"
+                value={newsletterName}
+                onChange={(e) => setNewsletterName(e.target.value)}
+                className="rounded-lg bg-slate-900/50 border border-slate-600 px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent" 
+              />
               <input 
                 type="email" 
+                required
                 placeholder="your@email.com" 
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 className="rounded-lg bg-slate-900/50 border border-slate-600 px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent" 
               />
               <button 
                 type="submit" 
-                className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 font-bold text-white hover:from-cyan-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
+                disabled={newsletterSubmitting}
+                className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 font-bold text-white hover:from-cyan-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Subscribe Now
+                {newsletterSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    Subscribing...
+                  </span>
+                ) : (
+                  'Subscribe Now'
+                )}
               </button>
             </form>
           </div>

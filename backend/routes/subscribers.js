@@ -14,12 +14,58 @@ const crypto = require('crypto');
 router.post('/', async (req, res) => {
   try {
     const { email, name } = req.body;
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Please provide a valid email address.' });
+    }
+    
+    // Check if subscriber already exists
+    const existingSubscriber = await Subscriber.findOne({ where: { email: email.toLowerCase() } });
+    if (existingSubscriber) {
+      if (existingSubscriber.unsubscribed) {
+        // Reactivate the subscription
+        existingSubscriber.unsubscribed = false;
+        existingSubscriber.name = name || existingSubscriber.name;
+        await existingSubscriber.save();
+        return res.status(200).json({ 
+          message: 'Welcome back! Your subscription has been reactivated.',
+          subscriber: existingSubscriber 
+        });
+      } else {
+        return res.status(400).json({ error: 'This email is already subscribed to our newsletter.' });
+      }
+    }
+    
     // Generate a unique unsubscribe token
-    const unsubscribeToken = crypto.randomBytes(24).toString('hex');
-    const subscriber = await Subscriber.create({ email, name, unsubscribeToken });
-    res.status(201).json(subscriber);
+    const unsubscribeToken = crypto.randomBytes(32).toString('hex');
+    
+    // Create new subscriber
+    const subscriber = await Subscriber.create({ 
+      email: email.toLowerCase().trim(), 
+      name: name ? name.trim() : null, 
+      unsubscribeToken 
+    });
+    
+    // Log subscription for analytics
+    console.log(`New subscriber: ${subscriber.email}${subscriber.name ? ` (${subscriber.name})` : ''}`);
+    
+    res.status(201).json({ 
+      message: 'Successfully subscribed to Smart Hustle AI newsletter!',
+      subscriber: {
+        id: subscriber.id,
+        email: subscriber.email,
+        name: subscriber.name,
+        createdAt: subscriber.createdAt
+      }
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('Subscriber creation error:', err);
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ error: 'This email is already subscribed to our newsletter.' });
+    }
+    res.status(500).json({ error: 'Subscription failed. Please try again later.' });
   }
 });
 
